@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>
+        <%= title %>
+    </title>
+    <link rel='stylesheet' href='<%=staticUrl%>/lib/artDialog/css/ui-dialog.css' />
+    <link rel='stylesheet' href='<%=staticUrl%>/stylesheets/style.css' /> </head>
+<script>
+var webUrl = '<%=webUrl%>';
+var staticUrl = '<%=staticUrl%>';
+</script>
+<style>
+input,
+textarea {
+    border: 1px #ccc solid;
+    border-radius: 3px;
+}
+
+.addPlugin {
+    cursor: pointer;
+}
+
+.uploadBtn {
+    background-color: rgb(255, 194, 55);
+    border-radius: 10px;
+    color: #fff;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    width: 100px;
+    height: 35px;
+    text-align: center;
+    line-height: 35px;
+}
+
+
+}
+.uploadForm {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+.uploadForm>div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+.uploadForm div>label {
+    max-width: 160px;
+}
+.uploadForm input {
+    width: 150px;
+    height: 20px;
+    line-height: 20px;
+}
+.uploadBtn>i {
+    width: 0;
+    display: block;
+    background-color: rgb(255, 144, 89);
+    position: absolute;
+    width: 0;
+    height: 100%;
+    top: 0;
+    left: 0;
+    transition: width .3s;
+    text-align: center;
+}
+.uploadBtn>span {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+.uploadForm textarea {
+    width: 150px;
+    resize: none;
+}
+.upload {
+    display: block;
+    width: 50px;
+    margin: 0 auto;
+    cursor: pointer;
+    text-align: center;
+    height: 25px;
+    line-height: 25px;
+    border-radius: 20px;
+    background-color: rgb(83, 183, 255);
+    color: #fff;
+}
+.mainContent {
+    min-width: 800px;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+</style>
+
+<body>
+    <h1 style="text-align:center;"><%= title %></h1>
+    <div class="mainContent">
+        <div style="text-align:right;">
+            <a class="addPlugin">添加插件</a>
+        </div>
+        <div>fdsfsdfsdf</div>
+    </div>
+</body>
+<script data-main="<%=staticUrl%>/javascripts/requireConfig" src="<%=staticUrl%>/lib/js/require.js"></script>
+<script></script>
+
+</html>
