@@ -1,81 +1,104 @@
-var express = require('express');
-var router = express.Router();
-var path = require('path');
-var fs = require('fs-extra');
-var multer = require('multer');
-var config = require(process.cwd() + '/config')
-var Busboy = require('busboy');
+const express = require('express');
+const router = express.Router();
+const config = require(process.cwd() + '/config')
+const moment = require('moment')
+const crypto = require('crypto')
+const upload = require('./upload')
+const redis = require('./redis')
 
-var storage = multer.diskStorage({
-    destination: function(req, file, cb) {
-        var uploadDir = config.fileConfig.uploadDir ?
-            config.fileConfig.uploadDir :
-            process.cwd() + '/tmpDir';
-        uploadDir = path.resolve(__dirname, uploadDir)
-        console.log(uploadDir)
-        fs.ensureDir(uploadDir, function(err) {
-            cb(null, uploadDir)
-        });
-    },
-    filename: function(req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname)
-    }
-})
-var upload = multer({
-        storage: storage,
-        limits: config.fileConfig.fileOptions,
-        fileFilter: function(req, file, cb) {
-            console.log(file)
-                // console.log(file.originalname)
-                // 这个函数应该调用 `cb` 用boolean值来
-                // 指示是否应接受该文件
-                // 拒绝这个文件，使用`false`, 像这样:
-                // cb(null, false)
-                // 接受这个文件，使用`true`, 像这样:
-            cb(null, true)
-                // 如果有问题，你可以总是这样发送一个错误:
-                // cb(new Error('I don\'t have a clue!'))
-        }
-    }).any()
-    /* GET home page. */
-router.get('/', function(req, res, next) {
-    res.render('index', {
-        title: '前端插件管理系统',
-        staticUrl: '/static',
-        webUrl: '/feplugins'
-    });
+/* GET home page. */
+router.get('/', function (req, res, next) {
+    // console.log(req.body);
+    res.send("hello World");
 });
-router.post('/addPlugin', function(req, res, next) {
+router.post('/addPlugin', function (req, res, next) {
     // console.log(req.body);
     // res.send(true);
 });
-router.post('/uploadPlugins', function(req, res, next) {
-    upload(req, res, function(err) {
-        console.log(req.body)
-        if (err) {
-            // 发生错误
-            // console.log(err)
-            var message = "";
-            var opFilesize = outputFileSize(config.fileConfig.fileOptions.fileSize);
-            if (err.code === "LIMIT_FILE_SIZE") {
-                message = "超过文件大小限制-->" + opFilesize
-            } else if (err.code === "LIMIT_FILE_COUNT") {
-                message = "超过文件大小限制-->最多" + config.fileConfig.fileOptions.files + "个"
-            }
-            var result = {
-                flag: false,
-                message: message
-            }
-            res.send(result)
-        } else {
-            var result = {
-                flag: true,
-                message: "上传成功"
-            }
-            res.send(result);
+router.post('/uploadPlugins/:systemCode/:key', function (req, res, next) {
+    let info = {
+        flag: false,
+        message: "",
+        data: null
+    }
+    let key = req.params.key
+    let systemCode = req.params.systemCode
+    console.log(key)
+    console.log(systemCode)
+    if (!config.allow[systemCode]) {
+        info.message = "该系统不允许调用资源管理系统"
+        res.send(info)
+        return false
+    }
+    redis.get(systemCode).then((result) => {
+        if (result === key) {
+            upload(req, res, function (err) {
+                console.log(req.body)
+                if (err) {
+                    // 发生错误
+                    console.log(err)
+                    var message = "";
+                    var opFilesize = outputFileSize(config.fileConfig.fileOptions.fileSize);
+                    if (err.code === "LIMIT_FILE_SIZE") {
+                        message = "超过文件大小限制-->" + opFilesize
+                    } else if (err.code === "LIMIT_FILE_COUNT") {
+                        message = "超过文件大小限制-->最多" + config.fileConfig.fileOptions.files + "个"
+                    }
+                    info.message = message
+                    res.send(info)
+                } else {
+                    info.flag = true
+                    info.message = "上传成功"
+                    res.send(info);
+                }
+            })
         }
+        else {
+            info.message = "key不正确"
+            res.send(info)
+        }
+    }, (err) => {
+        console.log(err)
+        info.message = "redis服务器错误"
+        res.send(info)
     })
 });
+
+router.get('/getPubKey/:systemCode/:publicKey', function (req, res, next) {
+    let info = {
+        flag: false,
+        message: "",
+        data: null
+    }
+    console.log(req.params.systemCode)
+    let systemCode = req.params.systemCode
+    if (!config.allow[systemCode]) {
+        info.message = "该系统不允许调用资源管理系统"
+        res.send(info)
+        return false
+    }
+    let key = getSha1Key(config.publicKey + moment().format('YYYY-MM-DD'))
+    console.log(key)
+    if (req.params.publicKey === key) {
+        let privateKey = ''
+        for (let i = 0; i < 6; i++) {
+            privateKey += parseInt(Math.random() * 10);
+        }
+        console.log(key)
+        redis.set(systemCode, privateKey, 180)
+        info.flag = true
+        info.message = "获取key成功"
+        info.data = privateKey
+        res.send(info)
+    } else {
+        info.message = "staticKey不正确"
+        res.send(info)
+    }
+})
+
+function getSha1Key(key) {
+    return crypto.createHash('sha1').update(key).digest('hex')
+}
 
 function outputFileSize(size) {
     if (size > 1024) {
@@ -95,4 +118,5 @@ function outputFileSize(size) {
         return size + "B"
     }
 }
+
 module.exports = router;
