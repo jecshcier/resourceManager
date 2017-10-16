@@ -50,10 +50,6 @@ router.post('/addPlugin', function(req, res, next) {
     // res.send(true);
 });
 router.post('/uploadPlugins', function(req, res, next) {
-    var busboy = new Busboy({
-        headers: req.headers
-    });
-    console.log(req.body)
     upload(req, res, function(err) {
         console.log(req.body)
         if (err) {
@@ -79,32 +75,6 @@ router.post('/uploadPlugins', function(req, res, next) {
             res.send(result);
         }
     })
-
-    busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
-        console.log(filename)
-        console.log(encoding)
-        console.log(mimetype)
-        let fileSize = 0;
-        file.on('data', function(data) {
-            console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
-            fileSize += data.length
-        });
-        file.on('end', function() {
-            console.log('File [' + fieldname + '] Finished' + 'size = ' + fileSize);
-        });
-    });
-    busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
-        console.log('Field [' + fieldname + ']: value: ');
-        console.log(val)
-    });
-    busboy.on('finish', function() {
-        console.log('Done parsing form!');
-        // res.writeHead(303, { Connection: 'close', Location: '/' });
-        // res.end();
-    });
-    req.pipe(busboy);
-
-
 });
 
 function outputFileSize(size) {
