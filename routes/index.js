@@ -31,6 +31,7 @@ router.post('/uploadPlugins/:systemCode/:key', function (req, res, next) {
         return false
     }
     redis.get(systemCode).then((result) => {
+        console.log(key)
         if (result === key) {
             upload(req, res, function (err) {
                 console.log(req.body)
