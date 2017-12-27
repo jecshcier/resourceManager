@@ -18,5 +18,7 @@ module.exports = {
     "publicKey":"10A1F6",
     "allow":{
         "fe_plugins":true
-    }
+    },
+    "projectName":"/rm",
+    "staticUrl":"/static"
 }

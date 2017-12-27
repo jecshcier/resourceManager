@@ -1,21 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const config = require(process.cwd() + '/config')
+const path = require('path')
+const config = require(path.normalize(__dirname + '/../config'))
 const moment = require('moment')
 const crypto = require('crypto')
 const upload = require('./upload')
 const redis = require('./redis')
 
 /* GET home page. */
-router.get('/', function (req, res, next) {
+router.get('/', function(req, res, next) {
     // console.log(req.body);
-    res.send("hello World");
+    // res.send("hello World");
+    res.render('index',{
+        webUrl:config.projectName,
+        staticUrl:config.staticUrl,
+        title:'资源管理系统'
+    })
 });
-router.post('/addPlugin', function (req, res, next) {
+router.post('/addPlugin', function(req, res, next) {
     // console.log(req.body);
     // res.send(true);
 });
-router.post('/uploadPlugins/:systemCode/:key', function (req, res, next) {
+router.post('/uploadPlugins/:systemCode/:key', function(req, res, next) {
     let info = {
         flag: false,
         message: "",
@@ -33,28 +39,12 @@ router.post('/uploadPlugins/:systemCode/:key', function (req, res, next) {
     redis.get(systemCode).then((result) => {
         console.log(key)
         if (result === key) {
-            upload(req, res, function (err) {
-                console.log(req.body)
-                if (err) {
-                    // 发生错误
-                    console.log(err)
-                    var message = "";
-                    var opFilesize = outputFileSize(config.fileConfig.fileOptions.fileSize);
-                    if (err.code === "LIMIT_FILE_SIZE") {
-                        message = "超过文件大小限制-->" + opFilesize
-                    } else if (err.code === "LIMIT_FILE_COUNT") {
-                        message = "超过文件大小限制-->最多" + config.fileConfig.fileOptions.files + "个"
-                    }
-                    info.message = message
-                    res.send(info)
-                } else {
-                    info.flag = true
-                    info.message = "上传成功"
-                    res.send(info);
-                }
+            upload(req, res).then((result) => {
+               res.send(result)
+            }, (result) => {
+               res.send(result)
             })
-        }
-        else {
+        } else {
             info.message = "key不正确"
             res.send(info)
         }
@@ -65,7 +55,7 @@ router.post('/uploadPlugins/:systemCode/:key', function (req, res, next) {
     })
 });
 
-router.get('/getPubKey/:systemCode/:publicKey', function (req, res, next) {
+router.get('/getPubKey/:systemCode/:publicKey', function(req, res, next) {
     let info = {
         flag: false,
         message: "",
@@ -86,7 +76,7 @@ router.get('/getPubKey/:systemCode/:publicKey', function (req, res, next) {
             privateKey += parseInt(Math.random() * 10);
         }
         console.log(key)
-        redis.set(systemCode, privateKey, 180)
+        redis.set(systemCode, privateKey, 120)
         info.flag = true
         info.message = "获取key成功"
         info.data = privateKey

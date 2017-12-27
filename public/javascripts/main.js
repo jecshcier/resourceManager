@@ -24,7 +24,7 @@ define([
                     return;
                 }
                 var fileObj = document.getElementById("pluginResource").files; // js 获取文件对象
-                var url = webUrl + '/uploadPlugins'; // 接收上传文件的后台地址
+                var url = webUrl + '/uploadPlugins/fe_plugins/948056'; // 接收上传文件的后台地址
                 var form = new FormData(); // FormData 对象
                 form.append('pluginName',$("[name=pluginName]").val())
                 form.append('pluginIntro',$("[name=pluginIntro]").val())
