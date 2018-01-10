@@ -3,14 +3,14 @@ const config = require(path.normalize(__dirname + '/../config'))
 const fs = require('fs-extra');
 const Busboy = require('busboy');
 const crypto = require('crypto');
-const sourcePath = config.uploadDir || path.normalize(__dirname + '/../tmpDir')
+const sourcePath = config.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
 
 //创建文件缓存目录
 fs.ensureDir(sourcePath, (err) => {
     if (err) {
         console.log(err)
         setInterval(() => {
-            console.log('缓存目录创建失败，请确认文件创建权限，或在项目根目录手动创建sourceDir文件夹')
+            console.log('缓存目录创建失败，请确认文件创建权限，或在项目根目录手动创建' + sourcePath + '文件夹')
         }, 5000)
     }
 })
@@ -22,7 +22,8 @@ const upload = function(req, res) {
         data: null
     }
     return new Promise((resolve, reject) => {
-        console.log(req.headers)
+        // console.log(req.headers)
+        // console.log(req)
         if (req.headers) {
             let fileSize = req.headers['content-length']
             if (fileSize > 1000000000) {
@@ -41,70 +42,112 @@ const upload = function(req, res) {
         });
         busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
             console.log('Field [' + fieldname + ']: value: ');
+            // console.log(busboy)
         });
-
+        let uploadFilesArr = {}
         busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
-            let fileSize = 0;
-            let hash = crypto.createHash('md5');
+            // let hash = crypto.createHash('md5');
             file.on('data', function(data) {
-                // console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
-                fileSize += data.length
-                hash.update(data)
+                if (!uploadFilesArr.hasOwnProperty(fieldname)) {
+                    uploadFilesArr[fieldname] = {
+                        name:filename,
+                        md5:crypto.createHash('md5'),
+                        size:data.length,
+                        mimetype:mimetype
+                    }
+                }
+                else
+                {
+                    uploadFilesArr[fieldname].size += data.length
+                    uploadFilesArr[fieldname].md5.update(data)
+                }
+                console.log(uploadFilesArr)
+                console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
+                // fileSize += data.length
+                // hash.update(data)                
             });
             file.on('end', function() {
+                uploadFilesArr[fieldname].md5 = uploadFilesArr[fieldname].md5.digest('hex')
                 console.log('File [' + fieldname + '] Finished');
+                console.log(uploadFilesArr)
             });
 
             file.on('close', function() {
                 console.log('File [' + fieldname + '] closed');
             });
-            console.log(filename)
-            console.log(mimetype)
+            console.info(filename)
+            console.info(mimetype)
+            // let fileNamePrefix = '/' + Date.now() + '-'
+            // let storeFileName = fileNamePrefix + filename
+            // let filepath = path.normalize(sourcePath + storeFileName)
+            // let writerStream = fs.createWriteStream(filepath)
 
-            let fileNamePrefix = '/' + Date.now() + '-'
-            let storeFileName = fileNamePrefix + filename
-            let filepath = path.normalize(sourcePath + storeFileName)
-            let writerStream = fs.createWriteStream(filepath)
+            // writerStream.on('error', (err) => {
+            //     info.message = err
+            //     writerStream.end(err);
+            //     reject(info)
+            // })
 
-            writerStream.on('error', (err) => {
-                info.message = err
-                writerStream.end(err);
-                reject(info)
-            })
+            // writerStream.on('finish', () => {
+            //     console.log("okokokokok")
+            //     return false;
+            //     let fileMD5 = hash.digest('hex')
+            //     console.log('fileMD5 --->', fileMD5)
+            //     let md5Path = ''
+            //     for (let i = 0; i < fileMD5.length; i++) {
+            //         md5Path += fileMD5[i]
+            //         if (!(i % 5) && i) {
+            //             md5Path += '/'
+            //         }
+            //     }
+            //     console.log('md5Path--->', md5Path)
+            //     md5Path = path.normalize(sourcePath + '/' + md5Path)
+            //     let newFilePath = path.normalize(md5Path + '/' + filename)
+            //     fs.pathExists(newFilePath).then((exists) => {
+            //         if (exists) {
+            //             fs.remove(filepath).then(() => {
+            //                 let baseUrl = new Buffer(fileMD5).toString('base64')
+            //                 info.flag = true
+            //                 info.message = "匹配到md5相同文件，上传成功"
+            //                 info.data = {
+            //                     fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + filename
+            //                 }
+            //                 resolve(info)
+            //             }, (err) => {
+            //                 console.warn('缓存文件删除失败')
+            //                 console.warn(err)
+            //             })
+            //         } else {
+            //             return fs.ensureDir(md5Path)
+            //         }
+            //     }, (err) => {
+            //         console.warn(err)
+            //         info.message = err
+            //         reject(info)
+            //         return false
+            //     }).then(() => {
+            //         return fs.rename(filepath, newFilePath)
+            //     }, (err) => {
+            //         console.warn(err)
+            //         info.message = err
+            //         reject(info)
+            //         return false
+            //     }).then(() => {
+            //         let baseUrl = new Buffer(fileMD5).toString('base64')
+            //         info.flag = true
+            //         info.message = "上传成功"
+            //         info.data = {
+            //             fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + filename
+            //         }
+            //         resolve(info)
+            //     }, (err) => {
+            //         console.warn(err)
+            //         info.message = err
+            //         reject(info)
+            //     })
+            // });
 
-            writerStream.on('finish', () => {
-                let fileMD5 = hash.digest('hex')
-                console.log('fileMD5 --->', fileMD5)
-                let md5Path = ''
-                for (let i = 0; i < fileMD5.length; i++) {
-                    md5Path += fileMD5[i]
-                    console.log(i % 5)
-                    if (!(i % 5) && i) {
-                        md5Path += '/'
-                    }
-                }
-                console.log('md5Path--->', md5Path)
-                md5Path = path.normalize(sourcePath + '/' + md5Path)
-                let newFilePath = path.normalize(md5Path + '/' + filename)
-                fs.ensureDir(md5Path).then(() => {
-                    return fs.rename(filepath, newFilePath)
-                }, (err) => {
-                    console.log(err)
-                    info.message = err
-                    reject(info)
-                    return false
-                }).then(() => {
-                    info.flag = true
-                    info.message = "上传成功"
-                    resolve(info)
-                }, (err) => {
-                    console.log(err)
-                    info.message = err
-                    reject(info)
-                })
-            });
-
-            file.pipe(writerStream)
+            // file.pipe(writerStream)
 
         });
 

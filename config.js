@@ -20,5 +20,7 @@ module.exports = {
         "fe_plugins":true
     },
     "projectName":"/rm",
-    "staticUrl":"/static"
+    "staticUrl":"/static",
+    "fileDownloadUrl":"/download",
+    "serverUrl":"http://127.0.0.1:3033"
 }

@@ -24,25 +24,25 @@ define([
                     return;
                 }
                 var fileObj = document.getElementById("pluginResource").files; // js 获取文件对象
-                var url = webUrl + '/uploadPlugins/fe_plugins/948056'; // 接收上传文件的后台地址
+                var url = webUrl + '/uploadPlugins/fe_plugins/415522'; // 接收上传文件的后台地址
                 var form = new FormData(); // FormData 对象
-                form.append('pluginName',$("[name=pluginName]").val())
-                form.append('pluginIntro',$("[name=pluginIntro]").val())
-                form.append('createUser',$("[name=createUser]").val())
-                form.append('userName',$("[name=userName]").val())
-                form.append('pluginIndex',$("[name=pluginIndex]").val())
+                form.append('pluginName', $("[name=pluginName]").val())
+                form.append('pluginIntro', $("[name=pluginIntro]").val())
+                form.append('createUser', $("[name=createUser]").val())
+                form.append('userName', $("[name=userName]").val())
+                form.append('pluginIndex', $("[name=pluginIndex]").val())
                 $.each(fileObj, function(index, el) {
                     form.append("file" + index, el);
                 });
                 // 文件对象
-                 // XMLHttpRequest 对象
+                // XMLHttpRequest 对象
                 xhr.open("post", url, true); //post方式，url为服务器请求地址，true 该参数规定请求是否异步处理。
                 xhr.onload = function(e) {
                     uploading = false;
                     var data = JSON.parse(e.target.responseText);
                     d1.close().remove();
                     if (data.flag) {
-                        showlog(data.message)
+                        showlog(data.message + '\n' + '下载地址为' + data.data.fileUrl)
                     } else {
                         showlog('上传失败，原因是：' + data.message)
                     }
@@ -66,8 +66,12 @@ define([
             d1.show();
         });
     })
+
     function showlog(message) {
-        var d2 = dialog({content: message, ok: function() {}});
+        var d2 = dialog({
+            content: message,
+            ok: function() {}
+        });
         d2.show();
     }
 });

@@ -6,15 +6,14 @@ const moment = require('moment')
 const crypto = require('crypto')
 const upload = require('./upload')
 const redis = require('./redis')
+const uploadDir = config.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-    // console.log(req.body);
-    // res.send("hello World");
-    res.render('index',{
-        webUrl:config.projectName,
-        staticUrl:config.staticUrl,
-        title:'资源管理系统'
+    res.render('index', {
+        webUrl: config.projectName,
+        staticUrl: config.staticUrl,
+        title: '资源管理系统'
     })
 });
 router.post('/addPlugin', function(req, res, next) {
@@ -40,9 +39,9 @@ router.post('/uploadPlugins/:systemCode/:key', function(req, res, next) {
         console.log(key)
         if (result === key) {
             upload(req, res).then((result) => {
-               res.send(result)
+                res.send(result)
             }, (result) => {
-               res.send(result)
+                res.send(result)
             })
         } else {
             info.message = "key不正确"
@@ -85,6 +84,23 @@ router.get('/getPubKey/:systemCode/:publicKey', function(req, res, next) {
         info.message = "staticKey不正确"
         res.send(info)
     }
+})
+
+router.get('/file/:fileid/:filename', function(req, res, next) {
+    let fileid = req.params.fileid
+    let fileName = req.params.filename
+    fileid = new Buffer(fileid, 'base64').toString()
+    let filePath = '/'
+    for (let i = 0; i < fileid.length; i++) {
+        filePath += fileid[i]
+        console.log(i % 5)
+        if (!(i % 5) && i) {
+            filePath += '/'
+        }
+    }
+    console.log(uploadDir + filePath + '/' + fileName)
+    res.setHeader('content-type','application/octet-stream')
+    res.sendFile(uploadDir + filePath + '/' + fileName)
 })
 
 function getSha1Key(key) {
