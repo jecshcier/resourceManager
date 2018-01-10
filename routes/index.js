@@ -9,121 +9,81 @@ const redis = require('./redis')
 const uploadDir = config.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
 
 /* GET home page. */
-router.get('/', function(req, res, next) {
-    res.render('index', {
-        webUrl: config.projectName,
-        staticUrl: config.staticUrl,
-        title: '资源管理系统'
-    })
-});
-router.post('/addPlugin', function(req, res, next) {
-    // console.log(req.body);
-    // res.send(true);
-});
-router.post('/uploadPlugins/:systemCode/:key', function(req, res, next) {
-    let info = {
-        flag: false,
-        message: "",
-        data: null
-    }
-    let key = req.params.key
-    let systemCode = req.params.systemCode
-    console.log(key)
-    console.log(systemCode)
-    if (!config.allow[systemCode]) {
-        info.message = "该系统不允许调用资源管理系统"
-        res.send(info)
-        return false
-    }
-    redis.get(systemCode).then((result) => {
-        console.log(key)
-        if (result === key) {
-            upload(req, res).then((result) => {
-                res.send(result)
-            }, (result) => {
-                res.send(result)
-            })
-        } else {
-            info.message = "key不正确"
-            res.send(info)
-        }
-    }, (err) => {
-        console.log(err)
-        info.message = "redis服务器错误"
-        res.send(info)
-    })
+router.get('/', function (req, res, next) {
+  res.render('index', {
+    webUrl: config.projectName,
+    staticUrl: config.staticUrl,
+    title: '资源管理系统',
+    key: getSha1Key(config.publicKey + moment().format('YYYY-MM-DD'))
+  })
 });
 
-router.get('/getPubKey/:systemCode/:publicKey', function(req, res, next) {
-    let info = {
-        flag: false,
-        message: "",
-        data: null
-    }
-    console.log(req.params.systemCode)
-    let systemCode = req.params.systemCode
-    if (!config.allow[systemCode]) {
-        info.message = "该系统不允许调用资源管理系统"
-        res.send(info)
-        return false
-    }
-    let key = getSha1Key(config.publicKey + moment().format('YYYY-MM-DD'))
-    console.log(key)
-    if (req.params.publicKey === key) {
-        let privateKey = ''
-        for (let i = 0; i < 6; i++) {
-            privateKey += parseInt(Math.random() * 10);
-        }
-        console.log(key)
-        redis.set(systemCode, privateKey, 120)
-        info.flag = true
-        info.message = "获取key成功"
-        info.data = privateKey
-        res.send(info)
-    } else {
-        info.message = "staticKey不正确"
-        res.send(info)
-    }
+router.post('/uploadPlugins/:systemCode/:publicKey', function (req, res, next) {
+  let info = {
+    flag: false,
+    message: "",
+    data: null
+  }
+  console.log(req.params.systemCode)
+  let systemCode = req.params.systemCode
+  if (!config.allow[systemCode]) {
+    info.message = "该系统不允许调用资源管理系统"
+    res.send(info)
+    return false
+  }
+  let key = getSha1Key(config.publicKey + moment().format('YYYY-MM-DD'))
+  console.log(key)
+  console.log(req.params.publicKey)
+  if (req.params.publicKey === key) {
+    upload(req, res).then((result) => {
+      res.send(result)
+    }, (result) => {
+      res.send(result)
+    })
+  } else {
+    info.message = "staticKey不正确"
+    res.send(info)
+  }
 })
 
-router.get('/file/:fileid/:filename', function(req, res, next) {
-    let fileid = req.params.fileid
-    let fileName = req.params.filename
-    fileid = new Buffer(fileid, 'base64').toString()
-    let filePath = '/'
-    for (let i = 0; i < fileid.length; i++) {
-        filePath += fileid[i]
-        console.log(i % 5)
-        if (!(i % 5) && i) {
-            filePath += '/'
-        }
+router.get('/file/:fileid/:filename', function (req, res, next) {
+  let fileid = req.params.fileid
+  let fileName = req.params.filename
+  fileid = new Buffer(fileid, 'base64').toString()
+  let filePath = '/'
+  for (let i = 0; i < fileid.length; i++) {
+    filePath += fileid[i]
+    console.log(i % 5)
+    if (!(i % 5) && i) {
+      filePath += '/'
     }
-    console.log(uploadDir + filePath + '/' + fileName)
-    res.setHeader('content-type','application/octet-stream')
-    res.sendFile(uploadDir + filePath + '/' + fileName)
+  }
+  console.log(uploadDir + filePath + '/' + fileName)
+  res.setHeader('content-type', 'application/octet-stream')
+  res.sendFile(uploadDir + filePath + '/' + fileName)
 })
 
 function getSha1Key(key) {
-    return crypto.createHash('sha1').update(key).digest('hex')
+  return crypto.createHash('sha1').update(key).digest('hex')
 }
 
 function outputFileSize(size) {
+  if (size > 1024) {
+    size = size / 1024;
     if (size > 1024) {
+      size = size / 1024;
+      if (size > 1024) {
         size = size / 1024;
-        if (size > 1024) {
-            size = size / 1024;
-            if (size > 1024) {
-                size = size / 1024;
-                return size + "GB"
-            } else {
-                return size + "MB"
-            }
-        } else {
-            return size + "KB"
-        }
+        return size + "GB"
+      } else {
+        return size + "MB"
+      }
     } else {
-        return size + "B"
+      return size + "KB"
     }
+  } else {
+    return size + "B"
+  }
 }
 
 module.exports = router;

@@ -1,5 +1,3 @@
 # resourceManager
 
-??????
-
-Shayne C ??
+npm install && npm start

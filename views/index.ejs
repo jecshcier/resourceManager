@@ -5,111 +5,165 @@
     <title>
         <%= title %>
     </title>
-    <link rel='stylesheet' href='<%=staticUrl%>/lib/artDialog/css/ui-dialog.css' />
-    <link rel='stylesheet' href='<%=staticUrl%>/stylesheets/style.css' /> </head>
+    <link rel='stylesheet' href='<%= staticUrl %>/lib/artDialog/css/ui-dialog.css'/>
+    <link rel='stylesheet' href='<%= staticUrl %>/stylesheets/style.css'/>
+</head>
 <script>
-var webUrl = '<%=webUrl%>';
-var staticUrl = '<%=staticUrl%>';
+  var webUrl = '<%= webUrl %>';
+  var staticUrl = '<%= staticUrl %>';
 </script>
 <style>
-input,
-textarea {
-    border: 1px #ccc solid;
-    border-radius: 3px;
-}
+    body {
+        margin: 0;
+        padding: 0;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+    }
 
-.addPlugin {
-    cursor: pointer;
-}
+    .uploadBtn {
+        background-color: rgb(255, 194, 55);
+        border-radius: 10px;
+        color: #fff;
+        cursor: pointer;
+        overflow: hidden;
+        position: absolute;
+        width: 100px;
+        height: 35px;
+        text-align: center;
+        line-height: 35px;
+        left: 0;
+        right: 0;
+        top: 0;
+        margin: auto;
+    }
 
-.uploadBtn {
-    background-color: rgb(255, 194, 55);
-    border-radius: 10px;
-    color: #fff;
-    cursor: pointer;
-    overflow: hidden;
-    position: relative;
-    width: 100px;
-    height: 35px;
-    text-align: center;
-    line-height: 35px;
-}
+    .uploadForm {
+        width: 400px;
+        height: 100px;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100px;
+        margin: auto;
+    }
 
+    .uploadForm div > label {
+        max-width: 160px;
+    }
 
-}
-.uploadForm {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
-.uploadForm>div {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 15px;
-}
-.uploadForm div>label {
-    max-width: 160px;
-}
-.uploadForm input {
-    width: 150px;
-    height: 20px;
-    line-height: 20px;
-}
-.uploadBtn>i {
-    width: 0;
-    display: block;
-    background-color: rgb(255, 144, 89);
-    position: absolute;
-    width: 0;
-    height: 100%;
-    top: 0;
-    left: 0;
-    transition: width .3s;
-    text-align: center;
-}
-.uploadBtn>span {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-}
-.uploadForm textarea {
-    width: 150px;
-    resize: none;
-}
-.upload {
-    display: block;
-    width: 50px;
-    margin: 0 auto;
-    cursor: pointer;
-    text-align: center;
-    height: 25px;
-    line-height: 25px;
-    border-radius: 20px;
-    background-color: rgb(83, 183, 255);
-    color: #fff;
-}
-.mainContent {
-    min-width: 800px;
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
+    .uploadBtn > i {
+        width: 0;
+        display: block;
+        background-color: rgb(255, 144, 89);
+        position: absolute;
+        width: 0;
+        height: 100%;
+        top: 0;
+        left: 0;
+        transition: width .3s;
+        text-align: center;
+    }
+
+    .uploadBtn > span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+    }
+
+    .upload {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: auto;
+        display: block;
+        width: 50px;
+        cursor: pointer;
+        text-align: center;
+        height: 25px;
+        line-height: 25px;
+        border-radius: 20px;
+        background-color: rgb(83, 183, 255);
+        color: #fff;
+    }
+
 </style>
 
 <body>
-    <h1 style="text-align:center;"><%= title %></h1>
-    <div class="mainContent">
-        <div style="text-align:right;">
-            <a class="addPlugin">添加插件</a>
-        </div>
-        <div>fdsfsdfsdf</div>
-    </div>
+<p><%=key%></p>
+<div class="uploadForm">
+    <label class="uploadBtn" for="pluginResource">
+        <i></i>
+        <span>点击上传插件</span>
+    </label>
+    <input type="file"
+           id="pluginResource"
+           name="pluginResource"
+           multiple
+           style="display:none">
+    <a class="upload">提交</a>
+</div>
 </body>
-<script data-main="<%=staticUrl%>/javascripts/requireConfig" src="<%=staticUrl%>/lib/js/require.js"></script>
-<script></script>
+<script src="<%= staticUrl %>/lib/js/jquery-3.1.0.min.js"></script>
+<script src="<%= staticUrl %>/lib/artDialog/dist/dialog-plus-min.js"></script>
+
+<script>
+  function showlog(message) {
+    var d2 = dialog({
+      content: message,
+      ok: function() {}
+    });
+    d2.show();
+  }
+  $(function () {
+    var uploading = false;
+    xhr = new XMLHttpRequest();
+    $(".upload").click(function (event) {
+      if (uploading) {
+        return;
+      }
+      var fileObj = document.getElementById("pluginResource").files; // js 获取文件对象
+      var url = webUrl + '/uploadPlugins/fe_plugins/<%= key %>'; // 接收上传文件的后台地址
+      var form = new FormData(); // FormData 对象
+      form.append('pluginName', $("[name=pluginName]").val())
+      form.append('pluginIntro', $("[name=pluginIntro]").val())
+      form.append('createUser', $("[name=createUser]").val())
+      form.append('userName', $("[name=userName]").val())
+      form.append('pluginIndex', $("[name=pluginIndex]").val())
+      $.each(fileObj, function (index, el) {
+        form.append("file" + index, el);
+      });
+      // 文件对象
+      // XMLHttpRequest 对象
+      xhr.open("post", url, true); //post方式，url为服务器请求地址，true 该参数规定请求是否异步处理。
+      xhr.onload = function (e) {
+        uploading = false;
+        var data = JSON.parse(e.target.responseText);
+        if (data.flag) {
+          showlog(data.message + '\n' + '下载地址为' + data.data.fileUrl)
+        } else {
+          showlog('上传失败，原因是：' + data.message)
+        }
+      }; //请求完成
+      xhr.onerror = function (e) {
+        showlog('上传失败！')
+      }; //请求失败
+      xhr.upload.onprogress = function (evt) {
+        uploading = true;
+        var progress = Math.round(evt.loaded / evt.total * 100);
+        $(".uploadBtn>i").css('width', progress + 'px');
+        $(".uploadBtn>span").html(progress + '%')
+        console.log(progress + '%')
+      }; //【上传进度调用方法实现】
+      xhr.upload.onloadstart = function () { //上传开始执行方法
+        console.log("开始上传")
+      };
+      xhr.send(form); //开始上传，发送form数据
+    });
+  })
+</script>
 
 </html>
