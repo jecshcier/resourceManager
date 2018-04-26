@@ -60,7 +60,7 @@ const upload = function (req, res) {
             name: filename,
             md5: crypto.createHash('md5'),
             size: data.length,
-            tempPath:filePath,
+            tempPath: filePath,
             mimetype: mimetype
           }
           uploadFilesArr[fieldname].md5.update(data)
@@ -127,59 +127,64 @@ const upload = function (req, res) {
         md5Path = path.normalize(sourcePath + '/' + md5Path)
         let newFilePath = path.normalize(md5Path + '/' + uploadFilesArr[i].name)
         let baseUrl = new Buffer(fileMD5).toString('base64')
-        fs.pathExists(newFilePath).then((exists) => {
-          if (exists) {
-            fs.remove(filePath).then(() => {
-              info.data['fileList'].push({
-                name: uploadFilesArr[i].name,
-                code: 1,
-                message: '上传成功',
-                fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+        let transfer = async () => {
+          console.log("开始" + i)
+          await fs.pathExists(newFilePath).then((exists) => {
+            if (exists) {
+              fs.remove(filePath).then(() => {
+                info.data['fileList'].push({
+                  name: uploadFilesArr[i].name,
+                  code: 1,
+                  message: '上传成功',
+                  fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+                })
+              }, (err) => {
+                console.warn('缓存文件删除失败')
+                console.warn(err)
+                info.data['fileList'].push({
+                  name: uploadFilesArr[i].name,
+                  flag: true,
+                  message: '上传成功',
+                  fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+                })
               })
-            }, (err) => {
-              console.warn('缓存文件删除失败')
-              console.warn(err)
-              info.data['fileList'].push({
-                name: uploadFilesArr[i].name,
-                flag: true,
-                message: '上传成功',
-                fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
-              })
+            } else {
+              return fs.ensureDir(md5Path)
+            }
+          }, (err) => {
+            info.data['fileList'].push({
+              name: uploadFilesArr[i].name,
+              flag: false,
+              message: '服务器文件系统出错 -->' + err,
+              fileUrl: null
             })
-          } else {
-            return fs.ensureDir(md5Path)
-          }
-        }, (err) => {
-          info.data['fileList'].push({
-            name: uploadFilesArr[i].name,
-            flag: false,
-            message: '服务器文件系统出错 -->' + err,
-            fileUrl: null
+          }).then(() => {
+            return fs.rename(filePath, newFilePath)
+          }, (err) => {
+            info.data['fileList'].push({
+              name: uploadFilesArr[i].name,
+              flag: false,
+              message: '服务器文件系统出错 -->' + err,
+              fileUrl: null
+            })
+          }).then(() => {
+            info.data['fileList'].push({
+              name: uploadFilesArr[i].name,
+              flag: true,
+              message: '上传成功',
+              fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+            })
+          }, (err) => {
+            info.data['fileList'].push({
+              name: uploadFilesArr[i].name,
+              flag: false,
+              message: '服务器文件系统出错 -->' + err,
+              fileUrl: null
+            })
           })
-        }).then(() => {
-          return fs.rename(filePath, newFilePath)
-        }, (err) => {
-          info.data['fileList'].push({
-            name: uploadFilesArr[i].name,
-            flag: false,
-            message: '服务器文件系统出错 -->' + err,
-            fileUrl: null
-          })
-        }).then(() => {
-          info.data['fileList'].push({
-            name: uploadFilesArr[i].name,
-            flag: true,
-            message: '上传成功',
-            fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
-          })
-        }, (err) => {
-          info.data['fileList'].push({
-            name: uploadFilesArr[i].name,
-            flag: false,
-            message: '服务器文件系统出错 -->' + err,
-            fileUrl: null
-          })
-        })
+        }
+
+        transfer()
       }
 
     });

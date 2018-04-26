@@ -1,24 +1,28 @@
-const config = require(process.cwd() + '/config')
-const Redis = require('ioredis');
-const redis = new Redis(config.redisConfig.option);
+const config = require('../config')
+const path = require('path');
+const ioRedis = require('ioredis');
+const redis = new ioRedis(config.redisConfig.option);
 
-module.exports = {
-    set:(key, value, time) => {
-        return redis.set(key, value,'EX', time);
-    },
-    get:(key) => {
-        return redis.get(key)
-    }
+// redis 链接错误
+redis.on("error", function(error) {
+	console.log(error);
+});
+
+function setData(index, el, time) {
+	if(time){
+		return redis.set(index, el, 'EX', time);
+	}
+	else{
+		return redis.set(index, el);
+	}
 }
 
+function getData(index) {
+	return redis.get(index);
+}
 
-// Or using a promise if the last argument isn't a function
-// redis.get('foo').then(function (result) {
-//     console.log(result);
-// });
-
-// Arguments to commands are flattened, so the following are the same:
-// redis.sadd('set', 1, 3, 5, 7);
-// redis.sadd('set', [1, 3, 5, 7]);
-
-// All arguments are passed directly to the redis server:
+module.exports = {
+	redis: redis,
+	setData: setData,
+	getData: getData
+}

@@ -1,26 +1,26 @@
 module.exports = {
-    "fileConfig": {
-        "uploadDir": null,
-        "fileOptions": {
-            "fields": 5,
-            "fileSize": 1024 * 1024 * 1024 * 2,
-            "files": 5,
-            "parts": 1024 * 1024 * 1024 * 2
+    fileConfig: {
+        uploadDir: null,
+        fileOptions: {
+            fields: 5,
+            fileSize: 1024 * 1024 * 1024 * 2,
+            files: 5,
+            parts: 1024 * 1024 * 1024 * 2
         }
     },
-    "redisConfig": {
+    redisConfig: {
         option:{
-            "host": "127.0.0.1",
-            "port":6379,
-            "keyPrefix":"rm-"
+            host: "127.0.0.1",
+            port:6379,
+            keyPrefix:"rm-"
         }
     },
-    "publicKey":"10A1F6",
-    "allow":{
-        "fe_plugins":true
+    publicKey:"10A1F6",
+    allow:{
+        fe_plugins:true
     },
-    "projectName":"/rm",
-    "staticUrl":"/static",
-    "fileDownloadUrl":"/download",
-    "serverUrl":"http://127.0.0.1:3033"
+    projectName:"/rm",
+    staticUrl:"/static",
+    fileDownloadUrl:"/download",
+    serverUrl:"http://127.0.0.1:3033"
 }

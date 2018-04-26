@@ -1,12 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path')
-const config = require(path.normalize(__dirname + '/../config'))
+const config = require('../config')
 const moment = require('moment')
 const crypto = require('crypto')
 const upload = require('./upload')
 const redis = require('./redis')
 const uploadDir = config.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
+
+
+router.use((req, res, next) => {
+  // 中间件 - 指定的路由都将经过这里
+  // 做访问拦截 - token验证等
+  if ((req.url.indexOf('/login') !== -1) || req.session.user || req.body.token) {
+    next()
+    return
+  }
+  res.render('index', {
+    webUrl: config.projectName,
+    staticUrl: config.staticUrl,
+    title: '资源管理系统',
+    key: getSha1Key(config.publicKey)
+  })
+})
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -14,7 +30,7 @@ router.get('/', function (req, res, next) {
     webUrl: config.projectName,
     staticUrl: config.staticUrl,
     title: '资源管理系统',
-    key: getSha1Key(config.publicKey + moment().format('YYYY-MM-DD'))
+    key: getSha1Key(config.publicKey)
   })
 });
 
@@ -31,7 +47,7 @@ router.post('/uploadPlugins/:systemCode/:publicKey', function (req, res, next) {
     res.send(info)
     return false
   }
-  let key = getSha1Key(config.publicKey + moment().format('YYYY-MM-DD'))
+  let key = getSha1Key(config.publicKey)
   console.log(key)
   console.log(req.params.publicKey)
   if (req.params.publicKey === key) {
