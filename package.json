@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "initSQL": "sequelize-auto -h 127.0.0.1 -d rms -u root -x Admin12345* -p 3306  --dialect mysql -o ./routes/assets/sql/models/"
   },
   "dependencies": {
     "body-parser": "~1.16.0",
@@ -16,6 +17,9 @@
     "ioredis": "^3.2.2",
     "moment": "^2.20.1",
     "morgan": "~1.7.0",
-    "serve-favicon": "~2.3.2"
+    "serve-favicon": "~2.3.2",
+    "uuid": "^3.2.1",
+    "mysql2": "^1.5.3",
+    "sequelize": "^4.37.6"
   }
 }

@@ -7,6 +7,7 @@ const crypto = require('crypto')
 const upload = require('./upload')
 const redis = require('./redis')
 const uploadDir = CONFIG.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
+const interception = ['/uploadFile', '/file']
 
 // 生成sha1Key
 for (var i = 0; i < CONFIG.systemCode.length; i++) {
@@ -18,14 +19,15 @@ for (var i = 0; i < CONFIG.systemCode.length; i++) {
 }
 
 
-
 router.use((req, res, next) => {
   // 中间件 - 指定的路由都将经过这里
   // 做访问拦截 - token验证等
   let systemCode = req.body.systemCode
-  if (req.url.indexOf('/uploadFile') !== -1) {
-    next()
-    return
+  for (let i = 0; i < interception.length; i++) {
+    if (req.url.indexOf(interception[i]) !== -1) {
+      next()
+      return
+    }
   }
   if (CONFIG.systemCode.indexOf(systemCode) !== -1) {
     next()
@@ -38,21 +40,22 @@ router.use((req, res, next) => {
 })
 
 // 获取sha1key
-router.post('/getSha1Key', function(req, res, next) {
+router.post('/getSha1Key', async function (req, res, next) {
   let systemCode = req.body.systemCode
-  redis.getData(systemCode).then((sha1Key) => {
+  try {
+    let sha1Key = await redis.getData(systemCode)
     res.send({
       key: sha1Key
     })
-  }).catch((e) => {
+  } catch (e) {
     res.send({
       err: e
     })
-  })
+  }
 });
 
 // 上传文件
-router.post('/uploadFile/:systemCode/:sha1Key', function(req, res, next) {
+router.post('/uploadFile/:systemCode/:sha1Key', async function (req, res, next) {
   let info = {
     flag: false,
     message: "",
@@ -60,22 +63,25 @@ router.post('/uploadFile/:systemCode/:sha1Key', function(req, res, next) {
   }
   let systemCode = req.params.systemCode
   let sha1Key = req.params.sha1Key
-  redis.getData(systemCode).then((key) => {
-      if (sha1Key === key) {
-      return upload(req, res)
-    } else {
-      info.message = "staticKey不正确"
+  let key
+  try {
+    key = await redis.getData(systemCode)
+  } catch (e) {
+    info.message = "staticKey不正确"
+    res.send(info)
+    return false
+  }
+  if (sha1Key === key) {
+    try {
+      let result = await upload(req, res)
+      res.send(result)
+    } catch (info) {
       res.send(info)
     }
-  }).then((result) => {
-    res.send(result)
-  }).catch((e) => {
-    info.message = e
-    res.send(info)
-  })
+  }
 })
 
-router.get('/file/:fileid/:filename', function(req, res, next) {
+router.get('/file/:fileid/:filename', function (req, res, next) {
   let fileid = req.params.fileid
   let fileName = req.params.filename
   fileid = new Buffer(fileid, 'base64').toString()

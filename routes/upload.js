@@ -4,6 +4,7 @@ const fs = require('fs-extra');
 const Busboy = require('busboy');
 const crypto = require('crypto');
 const sourcePath = config.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
+const sql = require('./assets/sql/sql')
 
 //创建文件缓存目录
 fs.ensureDir(sourcePath, (err) => {
@@ -31,7 +32,7 @@ const upload = function (req, res) {
         reject(message)
         return false;
       }
-
+      
     } else {
       info.message = 'headers不正确'
       reject(message)
@@ -46,15 +47,27 @@ const upload = function (req, res) {
     });
     let uploadFilesArr = {}
     let currentFileSize = 0
+    let fileCount = 0
+    let completeFileNum = 0
+    
+    //busboy监听文件流进入
+    //每进入一个文件流，就出发一次file事件
     busboy.on('file', function (fieldname, file, filename, encoding, mimetype) {
-      // let hash = crypto.createHash('md5');
+      
+      fileCount++;
+      console.log(fileCount)
+      //准备临时文件名
       let fileNamePrefix = '/' + Date.now() + '-'
       let storeFileName = fileNamePrefix + filename
+      //临时储存地址
       let filePath = path.normalize(sourcePath + storeFileName)
+      //创建一个文件写入流
       let writerStream = fs.createWriteStream(filePath)
-
-
+      
+      //有文件片段进入
       file.on('data', function (data) {
+        //若文件不在文件列表中，则说明是一个新的文件流，初始化文件属性
+        //若文件在文件列表中，则继续计算文件md5值和文件大小
         if (!uploadFilesArr.hasOwnProperty(fieldname)) {
           uploadFilesArr[fieldname] = {
             name: filename,
@@ -70,164 +83,180 @@ const upload = function (req, res) {
           uploadFilesArr[fieldname].md5.update(data)
         }
         currentFileSize += data.length
+        
+        //此处是总的文件传输进度
         console.log(currentFileSize / fileSize)
-        // console.log(uploadFilesArr)
-        // console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
-        // fileSize += data.length
-        // hash.update(data)
       });
+      
+      //当单个文件流结束时，完成当前文件的md5计算
       file.on('end', function () {
         uploadFilesArr[fieldname].md5 = uploadFilesArr[fieldname].md5.digest('hex')
         console.log('File [' + fieldname + '] Finished');
         console.log(uploadFilesArr)
       });
-
+      
+      //当文件流结束时触发
       file.on('close', function () {
         console.log('File [' + fieldname + '] closed');
       });
-      console.info(filename)
-      console.info(mimetype)
-
-
+      
+      //监听文件写入事件，当写入错误时，则终止请求
       writerStream.on('error', (err) => {
         info.message = err
         writerStream.end(err);
         console.error(err)
         req.socket.destroy();
       })
-
+      //监听文件写入完成事件，写入某个文件时，则增加一个计数
+      //只有当写入完成的文件计数等于上传的文件总数时，才开始执行文件储存操作
       writerStream.on('finish', () => {
         console.log("文件" + fieldname + "上传完成")
-        console.log(uploadFilesArr)
+        completeFileNum++
       });
-
+      
+      //将文件流pipe到文件写入流中
       file.pipe(writerStream)
-
+      
     });
-
-    busboy.on('finish', function () {
+    
+    //当所有请求的文件流数据都接受完毕时，执行此监听事件
+    //执行此事件主要是为了做文件的转存，从临时目录存到文件存储的目录。
+    //此操作需要等待文件流写入完毕，所以需要轮询，等到文件总数==文件流写入完成数量时，开始遍历文件进行迁移。
+    busboy.on('finish', async function () {
       console.log('Done parsing form!')
-      info.flag = true
-      info.message = "上传成功"
-      info.data = {}
-      info.data['fileList'] = []
-      let count = 0
-      let transfer = async () => {
-
-        for (let i in uploadFilesArr) {
-          let fileMD5 = uploadFilesArr[i].md5
-          let filePath = uploadFilesArr[i].tempPath
-          console.log('fileMD5 --->', fileMD5)
-          let md5Path = ''
-          for (let i = 0; i < fileMD5.length; i++) {
-            md5Path += fileMD5[i]
-            if (!(i % 5) && i) {
-              md5Path += '/'
-            }
-          }
-          console.log('md5Path--->', md5Path)
-          md5Path = path.normalize(sourcePath + '/' + md5Path)
-          let newFilePath = path.normalize(md5Path + '/' + uploadFilesArr[i].name)
-          let baseUrl = new Buffer(fileMD5).toString('base64')
-          console.log("开始" + i)
-          await fs.pathExists(newFilePath).then((exists) => {
-            if (exists) {
-              let sync = async () => {
-                await fs.remove(filePath).then(() => {
-                  info.data['fileList'].push({
-                    name: uploadFilesArr[i].name,
-                    code: 1,
-                    message: '上传成功',
-                    fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
-                  })
-                }, (err) => {
-                  console.warn('缓存文件删除失败')
-                  console.warn(err)
-                  info.data['fileList'].push({
-                    name: uploadFilesArr[i].name,
-                    flag: true,
-                    message: '上传成功',
-                    fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
-                  })
-                })
-              }
-              sync()
-            } else {
-              return fs.ensureDir(md5Path)
-            }
-          }, (err) => {
-            info.data['fileList'].push({
-              name: uploadFilesArr[i].name,
-              flag: false,
-              message: '服务器文件系统出错 -->' + err,
-              fileUrl: null
-            })
-          }).then(() => {
-            return fs.rename(filePath, newFilePath)
-          }, (err) => {
-            info.data['fileList'].push({
-              name: uploadFilesArr[i].name,
-              flag: false,
-              message: '服务器文件系统出错 -->' + err,
-              fileUrl: null
-            })
-          }).then(() => {
-            info.data['fileList'].push({
-              name: uploadFilesArr[i].name,
-              flag: true,
-              message: '上传成功',
-              fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
-            })
-          }, (err) => {
-            info.data['fileList'].push({
-              name: uploadFilesArr[i].name,
-              flag: false,
-              message: '服务器文件系统出错 -->' + err,
-              fileUrl: null
-            })
-          })
+      let eventNum = 0
+      //检测文件是否写入完毕
+      //若文件已经写入完毕，则立即执行转存储函数transfer
+      if (fileCount === completeFileNum) {
+        let result = await transfer(uploadFilesArr)
+        console.log("ok----------->")
+        console.log(result)
+        if(result.flag){
+          resolve(result)
+        }else{
+          reject(JSON.stringify(result))
         }
       }
-      transfer()
-      console.log(info)
-      resolve(info)
+      else {
+        //若未写入完毕，则开始轮询
+        let timer = setInterval(async () => {
+          console.log("第" + eventNum + "次轮询-------")
+          //写入过慢时放弃轮询，直接放弃
+          if (eventNum > 3) {
+            clearInterval(timer)
+            reject({
+              flag:false,
+              message:"文件系统出错!"
+            })
+          }
+          //检测文件是否写入完毕
+          if (fileCount === completeFileNum) {
+            clearInterval(timer)
+            //开始文件迁移操作
+            let result = await transfer(uploadFilesArr)
+            console.log("ok----------->")
+            console.log(result)
+            if(result.flag){
+              resolve(result)
+            }else{
+              reject(JSON.stringify(result))
+            }
+          }
+          eventNum++;
+        }, 1500)
+      }
+      
     });
     req.pipe(busboy);
   })
-
+  
 }
 
-
-// const storage = multer.diskStorage({
-//     destination: function (req, file, cb) {
-//         let uploadDir = config.fileConfig.uploadDir ?
-//             config.fileConfig.uploadDir :
-//             process.cwd() + '/tmpDir';
-//         uploadDir = path.resolve(__dirname, uploadDir)
-//         console.log(uploadDir)
-//         fs.ensureDir(uploadDir, (err) => {
-//             cb(null, uploadDir)
-//         });
-//     },
-//     filename: (req, file, cb) => {
-//         cb(null, Date.now() + '-' + file.originalname)
-//     }
-// })
-// const upload = multer({
-//     storage: storage,
-//     limits: config.fileConfig.fileOptions,
-//     fileFilter: function (req, file, cb) {
-//         console.log(file)
-//         // console.log(file.originalname)
-//         // 这个函数应该调用 `cb` 用boolean值来
-//         // 指示是否应接受该文件
-//         // 拒绝这个文件，使用`false`, 像这样:
-//         // cb(null, false)
-//         // 接受这个文件，使用`true`, 像这样:
-//         cb(null, true)
-//         // 如果有问题，你可以总是这样发送一个错误:
-//         // cb(new Error('I don\'t have a clue!'))
-//     }
-// }).any()
+async function transfer(uploadFilesArr) {
+  let info = {
+    flag: false,
+    message: '',
+    data: null
+  }
+  info.flag = true
+  info.message = "上传成功"
+  info.data = {}
+  info.data['fileList'] = []
+  for (let i in uploadFilesArr) {
+    let fileMD5 = uploadFilesArr[i].md5
+    let filePath = uploadFilesArr[i].tempPath
+    console.log('fileMD5 --->', fileMD5)
+    let md5Path = ''
+    for (let i = 0; i < fileMD5.length; i++) {
+      md5Path += fileMD5[i]
+      if (!(i % 5) && i) {
+        md5Path += '/'
+      }
+    }
+    console.log('md5Path--->', md5Path)
+    md5Path = path.normalize(sourcePath + '/' + md5Path)
+    let newFilePath = path.normalize(md5Path + '/' + uploadFilesArr[i].name)
+    let baseUrl = new Buffer(fileMD5).toString('base64')
+    console.log("开始" + i)
+    try {
+      //同步检测
+      let existFlag = await fs.pathExists(newFilePath)
+      let sqlData = {
+        fileName:uploadFilesArr[i].name,
+        downloadUrl:'/file/' + baseUrl + '/' + uploadFilesArr[i].name,
+        md5:fileMD5
+      }
+      if (existFlag) {
+        await fs.remove(filePath)
+        let data = await sql.addFiles(sqlData)
+        if(data.flag){
+          info.data['fileList'].push({
+            name: uploadFilesArr[i].name,
+            fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+          })
+        }
+        else{
+          info.flag = false
+          info.message = "上传文件出错!" + data.message
+          info.data['fileList'].push({
+            name: uploadFilesArr[i].name,
+            error: data.message
+          })
+          break;
+        }
+      }
+      else {
+        await fs.ensureDir(md5Path)
+        await fs.rename(filePath, newFilePath)
+        let data = await sql.addFiles(sqlData)
+        if(data.flag){
+          info.data['fileList'].push({
+            name: uploadFilesArr[i].name,
+            fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+          })
+        }
+        else{
+          info.flag = false
+          info.message = "上传文件出错!" + data.message
+          info.data['fileList'].push({
+            name: uploadFilesArr[i].name,
+            error: data.message
+          })
+          break;
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      info.flag = false
+      info.message = "上传文件出错!"
+      info.data['fileList'].push({
+        name: uploadFilesArr[i].name,
+        error: e
+      })
+      break;
+    }
+  }
+  return info
+}
 
 module.exports = upload
