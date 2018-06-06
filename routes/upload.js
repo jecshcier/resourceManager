@@ -28,13 +28,13 @@ const upload = function (req, res) {
     if (req.headers) {
       if (fileSize > 1000000000) {
         info.message = '超过最大上传文件大小限制(1G)！'
-        reject(info)
+        reject(message)
         return false;
       }
 
     } else {
       info.message = 'headers不正确'
-      reject(info)
+      reject(message)
       return false;
     }
     let busboy = new Busboy({
@@ -112,42 +112,46 @@ const upload = function (req, res) {
       info.data = {}
       info.data['fileList'] = []
       let count = 0
-      for (let i in uploadFilesArr) {
-        let fileMD5 = uploadFilesArr[i].md5
-        let filePath = uploadFilesArr[i].tempPath
-        console.log('fileMD5 --->', fileMD5)
-        let md5Path = ''
-        for (let i = 0; i < fileMD5.length; i++) {
-          md5Path += fileMD5[i]
-          if (!(i % 5) && i) {
-            md5Path += '/'
+      let transfer = async () => {
+
+        for (let i in uploadFilesArr) {
+          let fileMD5 = uploadFilesArr[i].md5
+          let filePath = uploadFilesArr[i].tempPath
+          console.log('fileMD5 --->', fileMD5)
+          let md5Path = ''
+          for (let i = 0; i < fileMD5.length; i++) {
+            md5Path += fileMD5[i]
+            if (!(i % 5) && i) {
+              md5Path += '/'
+            }
           }
-        }
-        console.log('md5Path--->', md5Path)
-        md5Path = path.normalize(sourcePath + '/' + md5Path)
-        let newFilePath = path.normalize(md5Path + '/' + uploadFilesArr[i].name)
-        let baseUrl = new Buffer(fileMD5).toString('base64')
-        let transfer = async () => {
+          console.log('md5Path--->', md5Path)
+          md5Path = path.normalize(sourcePath + '/' + md5Path)
+          let newFilePath = path.normalize(md5Path + '/' + uploadFilesArr[i].name)
+          let baseUrl = new Buffer(fileMD5).toString('base64')
           console.log("开始" + i)
           await fs.pathExists(newFilePath).then((exists) => {
             if (exists) {
-              fs.remove(filePath).then(() => {
-                info.data['fileList'].push({
-                  name: uploadFilesArr[i].name,
-                  code: 1,
-                  message: '上传成功',
-                  fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+              let sync = async () => {
+                await fs.remove(filePath).then(() => {
+                  info.data['fileList'].push({
+                    name: uploadFilesArr[i].name,
+                    code: 1,
+                    message: '上传成功',
+                    fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+                  })
+                }, (err) => {
+                  console.warn('缓存文件删除失败')
+                  console.warn(err)
+                  info.data['fileList'].push({
+                    name: uploadFilesArr[i].name,
+                    flag: true,
+                    message: '上传成功',
+                    fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
+                  })
                 })
-              }, (err) => {
-                console.warn('缓存文件删除失败')
-                console.warn(err)
-                info.data['fileList'].push({
-                  name: uploadFilesArr[i].name,
-                  flag: true,
-                  message: '上传成功',
-                  fileUrl: config.serverUrl + config.projectName + '/file/' + baseUrl + '/' + uploadFilesArr[i].name
-                })
-              })
+              }
+              sync()
             } else {
               return fs.ensureDir(md5Path)
             }
@@ -183,10 +187,10 @@ const upload = function (req, res) {
             })
           })
         }
-
-        transfer()
       }
-
+      transfer()
+      console.log(info)
+      resolve(info)
     });
     req.pipe(busboy);
   })

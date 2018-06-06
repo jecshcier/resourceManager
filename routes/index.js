@@ -1,68 +1,81 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path')
-const config = require('../config')
+const CONFIG = require('../config')
 const moment = require('moment')
 const crypto = require('crypto')
 const upload = require('./upload')
 const redis = require('./redis')
-const uploadDir = config.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
+const uploadDir = CONFIG.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
+
+// 生成sha1Key
+for (var i = 0; i < CONFIG.systemCode.length; i++) {
+  console.log(CONFIG.systemCode[i])
+  let seed = Math.random() * 99999 + CONFIG.systemCode[i]
+  let key = crypto.createHash('sha1').update(seed).digest('hex')
+  console.log(key)
+  redis.setData(CONFIG.systemCode[i], key)
+}
+
 
 
 router.use((req, res, next) => {
   // 中间件 - 指定的路由都将经过这里
   // 做访问拦截 - token验证等
-  if ((req.url.indexOf('/login') !== -1) || req.session.user || req.body.token) {
+  let systemCode = req.body.systemCode
+  if (req.url.indexOf('/uploadFile') !== -1) {
     next()
     return
   }
-  res.render('index', {
-    webUrl: config.projectName,
-    staticUrl: config.staticUrl,
-    title: '资源管理系统',
-    key: getSha1Key(config.publicKey)
-  })
+  if (CONFIG.systemCode.indexOf(systemCode) !== -1) {
+    next()
+  } else {
+    res.send({
+      flag: false,
+      message: "系统标识不正确！"
+    })
+  }
 })
 
-/* GET home page. */
-router.get('/', function (req, res, next) {
-  res.render('index', {
-    webUrl: config.projectName,
-    staticUrl: config.staticUrl,
-    title: '资源管理系统',
-    key: getSha1Key(config.publicKey)
+// 获取sha1key
+router.post('/getSha1Key', function(req, res, next) {
+  let systemCode = req.body.systemCode
+  redis.getData(systemCode).then((sha1Key) => {
+    res.send({
+      key: sha1Key
+    })
+  }).catch((e) => {
+    res.send({
+      err: e
+    })
   })
 });
 
-router.post('/uploadPlugins/:systemCode/:publicKey', function (req, res, next) {
+// 上传文件
+router.post('/uploadFile/:systemCode/:sha1Key', function(req, res, next) {
   let info = {
     flag: false,
     message: "",
     data: null
   }
-  console.log(req.params.systemCode)
   let systemCode = req.params.systemCode
-  if (!config.allow[systemCode]) {
-    info.message = "该系统不允许调用资源管理系统"
+  let sha1Key = req.params.sha1Key
+  redis.getData(systemCode).then((key) => {
+      if (sha1Key === key) {
+      return upload(req, res)
+    } else {
+      info.message = "staticKey不正确"
+      res.send(info)
+    }
+  }).then((result) => {
+    res.send(result)
+  }).catch((e) => {
+    info.message = e
     res.send(info)
-    return false
-  }
-  let key = getSha1Key(config.publicKey)
-  console.log(key)
-  console.log(req.params.publicKey)
-  if (req.params.publicKey === key) {
-    upload(req, res).then((result) => {
-      res.send(result)
-    }, (result) => {
-      res.send(result)
-    })
-  } else {
-    info.message = "staticKey不正确"
-    res.send(info)
-  }
+  })
 })
 
-router.get('/file/:fileid/:filename', function (req, res, next) {
+router.get('/file/:fileid/:filename', function(req, res, next) {
   let fileid = req.params.fileid
   let fileName = req.params.filename
   fileid = new Buffer(fileid, 'base64').toString()
@@ -78,10 +91,6 @@ router.get('/file/:fileid/:filename', function (req, res, next) {
   res.setHeader('content-type', 'application/octet-stream')
   res.sendFile(uploadDir + filePath + '/' + fileName)
 })
-
-function getSha1Key(key) {
-  return crypto.createHash('sha1').update(key).digest('hex')
-}
 
 function outputFileSize(size) {
   if (size > 1024) {

@@ -16,9 +16,7 @@ module.exports = {
         }
     },
     publicKey:"10A1F6",
-    allow:{
-        fe_plugins:true
-    },
+    systemCode:["tesla","fe_plugins"],
     projectName:"/rm",
     staticUrl:"/static",
     fileDownloadUrl:"/download",
