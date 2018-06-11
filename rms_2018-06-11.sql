@@ -7,7 +7,7 @@
 #
 # Host: 127.0.0.1 (MySQL 5.7.21)
 # Database: rms
-# Generation Time: 2018-06-06 10:23:59 +0000
+# Generation Time: 2018-06-11 10:35:49 +0000
 # ************************************************************
 
 
@@ -28,22 +28,15 @@ DROP TABLE IF EXISTS `files`;
 CREATE TABLE `files` (
   `id` varchar(50) NOT NULL DEFAULT '' COMMENT '文件id',
   `file_name` varchar(200) DEFAULT NULL COMMENT '文件名',
+  `suffix_name` varchar(50) DEFAULT NULL COMMENT '后缀名',
+  `file_size` int(100) DEFAULT NULL COMMENT '文件大小',
   `md5` varchar(50) DEFAULT NULL COMMENT 'md5值',
   `download_url` varchar(500) DEFAULT NULL COMMENT '下载地址',
+  `preview_url` varchar(500) DEFAULT NULL COMMENT '预览地址',
   `create_time` timestamp NULL DEFAULT NULL COMMENT '创建时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-LOCK TABLES `files` WRITE;
-/*!40000 ALTER TABLE `files` DISABLE KEYS */;
-
-INSERT INTO `files` (`id`, `file_name`, `md5`, `download_url`, `create_time`)
-VALUES
-	('5d40bb9e-f64c-4199-8055-68de40854587','ums1.0.zip','dfc82584df7420f4d6bf82e0fb4fc24c','/file/ZGZjODI1ODRkZjc0MjBmNGQ2YmY4MmUwZmI0ZmMyNGM=/ums1.0.zip','2018-06-06 18:08:54'),
-	('63c2c3ff-2978-4d23-89f7-55c62afacf87','ebook3.0.zip','acbb417fd43be8b58512710554744711','/file/YWNiYjQxN2ZkNDNiZThiNTg1MTI3MTA1NTQ3NDQ3MTE=/ebook3.0.zip','2018-06-06 18:08:54');
-
-/*!40000 ALTER TABLE `files` ENABLE KEYS */;
-UNLOCK TABLES;
 
 
 

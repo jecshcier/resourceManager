@@ -60,4 +60,5 @@ typings/
 .env
 
 tmpDir
+previewDir
 .idea

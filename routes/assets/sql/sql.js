@@ -51,7 +51,7 @@ module.exports = {
         }
       })
       if (result) {
-        info.flag = true
+        info.flag = 1
         info.data = JSON.parse(JSON.stringify(result))
         info.message = "该文件已存在"
         return info
@@ -59,8 +59,11 @@ module.exports = {
         let result2 = await FILES.create({
           'id': uuid.v4(),
           'file_name': data.fileName,
+          'suffix_name':data.suffixName,
+          'file_size':data.fileSize,
           'md5': data.md5,
           'download_url': data.downloadUrl,
+          'preview_url':data.previewUrl,
           'create_time':moment().format("YYYY-MM-DD HH:mm:ss")
         })
         info.flag = true

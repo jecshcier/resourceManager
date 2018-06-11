@@ -1,6 +1,7 @@
 module.exports = {
   fileConfig: {
     uploadDir: null,
+    previewDir:null,
     fileOptions: {
       fields: 5,
       fileSize: 1024 * 1024 * 1024 * 2,

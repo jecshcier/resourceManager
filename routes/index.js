@@ -5,8 +5,9 @@ const CONFIG = require('../config')
 const moment = require('moment')
 const crypto = require('crypto')
 const upload = require('./upload')
-const redis = require('./redis')
-const uploadDir = CONFIG.fileConfig.uploadDir || path.normalize(__dirname + '/../tmpDir')
+const redis = require('./assets/lib/redis')
+const uploadDir = CONFIG.fileConfig.uploadDir || path.join(__dirname, '../tmpDir')
+const previewPath = CONFIG.fileConfig.previewDir || path.join(__dirname, '../previewDir')
 const interception = ['/uploadFile', '/file']
 
 // 生成sha1Key
@@ -40,7 +41,7 @@ router.use((req, res, next) => {
 })
 
 // 获取sha1key
-router.post('/getSha1Key', async function (req, res, next) {
+router.post('/getSha1Key', async function(req, res, next) {
   let systemCode = req.body.systemCode
   try {
     let sha1Key = await redis.getData(systemCode)
@@ -55,7 +56,7 @@ router.post('/getSha1Key', async function (req, res, next) {
 });
 
 // 上传文件
-router.post('/uploadFile/:systemCode/:sha1Key', async function (req, res, next) {
+router.post('/uploadFile/:systemCode/:sha1Key', async function(req, res, next) {
   let info = {
     flag: false,
     message: "",
@@ -67,7 +68,7 @@ router.post('/uploadFile/:systemCode/:sha1Key', async function (req, res, next) 
   try {
     key = await redis.getData(systemCode)
   } catch (e) {
-    info.message = "staticKey不正确"
+    info.message = "文件系统出问题了哦～"
     res.send(info)
     return false
   }
@@ -78,10 +79,13 @@ router.post('/uploadFile/:systemCode/:sha1Key', async function (req, res, next) 
     } catch (info) {
       res.send(info)
     }
+  } else {
+    info.message = "staticKey不正确！"
+    res.send(info)
   }
 })
 
-router.get('/file/:fileid/:filename', function (req, res, next) {
+router.get('/file/:fileid/:filename', function(req, res, next) {
   let fileid = req.params.fileid
   let fileName = req.params.filename
   fileid = new Buffer(fileid, 'base64').toString()
@@ -96,6 +100,22 @@ router.get('/file/:fileid/:filename', function (req, res, next) {
   console.log(uploadDir + filePath + '/' + fileName)
   res.setHeader('content-type', 'application/octet-stream')
   res.sendFile(uploadDir + filePath + '/' + fileName)
+})
+
+router.get('/file_preview/:fileid/:filename', function(req, res, next) {
+  let fileid = req.params.fileid
+  let fileName = req.params.filename
+  fileid = new Buffer(fileid, 'base64').toString()
+  let filePath = '/'
+  for (let i = 0; i < fileid.length; i++) {
+    filePath += fileid[i]
+    console.log(i % 5)
+    if (!(i % 5) && i) {
+      filePath += '/'
+    }
+  }
+  console.log(previewPath + filePath + '/' + fileName)
+  res.sendFile(previewPath + filePath + '/' + fileName)
 })
 
 function outputFileSize(size) {
