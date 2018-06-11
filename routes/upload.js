@@ -1,10 +1,10 @@
 const path = require('path');
-const config = require(path.join(__dirname, '../config'))
+const CONFIG = require(path.join(__dirname, '../config'))
 const fs = require('fs-extra');
 const Busboy = require('busboy');
 const crypto = require('crypto');
-const sourcePath = config.fileConfig.uploadDir || path.join(__dirname, '../tmpDir')
-const previewPath = config.fileConfig.previewDir || path.join(__dirname, '../previewDir')
+const sourcePath = CONFIG.fileConfig.uploadDir || path.join(__dirname, '../tmpDir')
+const previewPath = CONFIG.fileConfig.previewDir || path.join(__dirname, '../previewDir')
 const sql = require('./assets/sql/sql')
 const child = require('child_process')
 const imgPresser = path.join(__dirname, './assets/lib/img_presser.js')
@@ -37,11 +37,13 @@ const upload = function(req, res) {
   }
   return new Promise((resolve, reject) => {
     // console.log(req.headers)
-    // console.log(req)
+    console.log(req)
     let fileSize = req.headers['content-length']
     if (req.headers) {
-      if (fileSize > 1000000000) {
-        info.message = '超过最大上传文件大小限制(1G)！'
+      console.log(fileSize)
+      console.log(CONFIG.fileConfig.fileOptions.maxFileSize)
+      if (fileSize > CONFIG.fileConfig.fileOptions.maxFileSize) {
+        info.message = '超过最大上传文件大小限制(2G)！'
         reject(message)
         return false;
       }
@@ -54,6 +56,7 @@ const upload = function(req, res) {
     let busboy = new Busboy({
       headers: req.headers
     });
+    console.log(busboy)
     busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
       console.log('Field [' + fieldname + ']: value: ');
       // console.log(busboy)
@@ -236,14 +239,14 @@ async function transfer(uploadFilesArr) {
         let pointer = info.data['fileList']
         pointer.push({
           name: uploadFilesArr[i].name,
-          fileUrl: config.serverUrl + config.projectName + sqlData.downloadUrl
+          fileUrl: CONFIG.serverUrl + CONFIG.projectName + sqlData.downloadUrl
         })
 
         // flag = 1 是文件已经存在的情况
         if (data.flag !== 1) {
           if (sqlData.fileType === 'img') {
             // 是图片的话，增加一个预览地址
-            pointer[pointer.length - 1].filePreviewUrl = config.serverUrl + config.projectName + sqlData.previewUrl
+            pointer[pointer.length - 1].filePreviewUrl = CONFIG.serverUrl + CONFIG.projectName + sqlData.previewUrl
             // 异步创建缩略图
             let p = child.fork(imgPresser, [], {})
             p.on('message', (m) => {
