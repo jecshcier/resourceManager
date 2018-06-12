@@ -4,7 +4,7 @@ module.exports = {
     previewDir:null,
     fileOptions: {
       maxFileSize: 1024 * 1024 * 1024 * 2,
-      maxFileNum: 5
+      maxFileNum: 20
     }
   },
   db_config: {

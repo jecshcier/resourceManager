@@ -57,11 +57,6 @@ router.post('/getSha1Key', async function(req, res, next) {
 
 // 上传文件
 router.post('/uploadFile/:systemCode/:sha1Key', async function(req, res, next) {
-  let info = {
-    flag: false,
-    message: "",
-    data: null
-  }
   let systemCode = req.params.systemCode
   let sha1Key = req.params.sha1Key
   let key
@@ -78,10 +73,12 @@ router.post('/uploadFile/:systemCode/:sha1Key', async function(req, res, next) {
       res.send(result)
     } catch (info) {
       res.send(info)
+      console.log(info)
     }
   } else {
-    info.message = "staticKey不正确！"
-    res.send(info)
+    res.send({
+      error: "staticKey不正确！"
+    })
   }
 })
 
