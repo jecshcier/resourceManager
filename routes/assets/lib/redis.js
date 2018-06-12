@@ -1,7 +1,7 @@
 var path = require('path');
 var config = require(path.join(__dirname, '../../../config'));
 var ioRedis = require('ioredis');
-var redis = new ioRedis(config.redisConfig);
+var redis = new ioRedis(config.redisConfig.option);
 // redis 链接错误
 redis.on("error", function(error) {
 	console.log(error);
