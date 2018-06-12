@@ -292,7 +292,8 @@ async function fileOper(uploadFile, callback) {
           p.send({
             filePath: newFilePath,
             outputPath: preMD5Path,
-            fileName: uploadFile.name
+            fileName: uploadFile.name,
+            imgWidth: CONFIG.fileConfig.pressImageW
           })
         }
       }

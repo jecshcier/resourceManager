@@ -5,7 +5,8 @@ module.exports = {
     fileOptions: {
       maxFileSize: 1024 * 1024 * 1024 * 2,
       maxFileNum: 20
-    }
+    },
+    pressImageW:300
   },
   db_config: {
     databaseName: "rms",

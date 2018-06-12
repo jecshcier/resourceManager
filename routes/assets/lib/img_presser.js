@@ -11,7 +11,7 @@ process.on('message', (m) => {
 	fs.ensureDir(m.outputPath).then(() => {
 		console.log("缩略图文件夹建立完成")
 		gm(m.filePath)
-			.resize(300, null, '!')
+			.resize(m.imgWidth, null, '!')
 			.quality(70)
 			.write(path.normalize(m.outputPath + '/' + m.fileName), function(err) {
 				if (!err) {
