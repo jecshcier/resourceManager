@@ -154,9 +154,9 @@ const upload = function(req, res) {
         fileOper(writerStream.fileData, (data) => {
           console.log("===========================>")
           console.log(data)
+          completeFileNum++
           dataList[fieldname].push(data)
         })
-        completeFileNum++
       });
       //将文件流pipe到文件写入流中
       file.pipe(writerStream)
