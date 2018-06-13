@@ -54,9 +54,6 @@ const upload = function(req, res) {
     });
     busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
       fieldCount++;
-      console.log("----------------------<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>")
-      console.log(fieldname)
-
       console.log('Field [' + fieldname + ']: value: ');
       // console.log(busboy)
     });
@@ -65,6 +62,7 @@ const upload = function(req, res) {
     let fileCount = 0
     let fieldCount = 0
     let completeFileNum = 0
+    let dataList = {}
 
     //busboy监听文件流进入
     //每进入一个文件流，就出发一次file事件
@@ -86,13 +84,26 @@ const upload = function(req, res) {
         })
         return false
       }
-        //准备临时文件名
+      //准备临时文件名
       let fileNamePrefix = '/' + Date.now() + '-'
       let storeFileName = fileNamePrefix + filename
         //临时储存地址
       let filePath = path.normalize(sourcePath + storeFileName)
         //创建一个文件写入流
-      let writerStream = fs.createWriteStream(filePath)
+      let writerStream = fs.createWriteStream(filePath, {
+        autoClose: true
+      })
+
+      let pointer = filename.split('.')
+      let suffixName = pointer[pointer.length - 1].toLowerCase()
+        // 将文件属性挂到文件写入流对象中
+      writerStream.fileData = {
+        name: filename,
+        md5: crypto.createHash('md5'),
+        fileSize: 0,
+        tempPath: filePath,
+        suffixName: suffixName
+      }
 
       //若文件不在文件列表中，则说明是一个新的文件流，初始化文件属性
       //若文件在文件列表中，则继续计算文件md5值和文件大小
@@ -100,32 +111,14 @@ const upload = function(req, res) {
         let pointer = filename.split('.')
         let suffixName = pointer[pointer.length - 1].toLowerCase()
         uploadFilesArr[fieldname] = []
-        uploadFilesArr[fieldname].push({
-          name: filename,
-          md5: crypto.createHash('md5'),
-          fileSize: 0,
-          tempPath: filePath,
-          suffixName: suffixName
-        })
-      } else {
-        let pointer = filename.split('.')
-        let suffixName = pointer[pointer.length - 1].toLowerCase()
-        uploadFilesArr[fieldname].push({
-          name: filename,
-          md5: crypto.createHash('md5'),
-          fileSize: 0,
-          tempPath: filePath,
-          suffixName: suffixName
-        })
+        dataList[fieldname] = []
       }
-      let sp = uploadFilesArr[fieldname]
-      let currentFile = sp[sp.length - 1]
-        //有文件片段进入
+      
+      //有文件片段进入
       file.on('data', function(data) {
-        let pointer = uploadFilesArr[fieldname]
-        currentFile.fileSize += data.length
-        currentFile.md5.update(data)
         currentFileSize += data.length
+        writerStream.fileData.md5.update(data)
+        writerStream.fileData.fileSize += data.length
 
         //此处是总的文件传输进度
         console.log(currentFileSize / fileSize)
@@ -133,99 +126,71 @@ const upload = function(req, res) {
 
       //当单个文件流结束时，完成当前文件的md5计算
       file.on('end', function() {
-        currentFile.md5 = currentFile.md5.digest('hex')
-        console.log('File [' + fieldname + '] Finished');
+        console.log(writerStream.fileData)
+        writerStream.fileData.md5 = writerStream.fileData.md5.digest('hex')
+        uploadFilesArr[fieldname].push(writerStream.fileData)
+        console.log('文件流' + writerStream.fileData.name + '传输完毕------------------->');
       });
 
       //当文件流结束时触发
       file.on('close', function() {
-        console.log('File [' + fieldname + '] closed');
+        console.log('文件流' + writerStream.fileData.name + "关闭---->");
       });
 
       //监听文件写入事件，当写入错误时，则终止请求
       writerStream.on('error', (err) => {
-          writerStream.end(err);
-          console.error(err)
-          req.socket.destroy();
+        writerStream.end(err);
+        console.error(err)
+        dataList[fieldname].push({
+          name: fileName,
+          error: "文件写入失败！"
         })
-        //监听文件写入完成事件，写入某个文件时，则增加一个计数
-        //只有当写入完成的文件计数等于上传的文件总数时，才开始执行文件储存操作
+        completeFileNum++
+      })
+
+      //监听文件写入完成事件，写入某个文件时，则增加一个计数
       writerStream.on('finish', () => {
-        console.log("文件" + fieldname + "上传完成")
+        console.log("文件" + writerStream.fileData.name + "写入完成---------------------------->")
+        fileOper(writerStream.fileData, (data) => {
+          console.log("===========================>")
+          console.log(data)
+          dataList[fieldname].push(data)
+        })
         completeFileNum++
       });
-
       //将文件流pipe到文件写入流中
       file.pipe(writerStream)
     });
 
     //当所有请求的文件流数据都接受完毕时，执行此监听事件
-    //执行此事件主要是为了做文件的转存，从临时目录存到文件存储的目录。
-    //此操作需要等待文件流写入完毕，所以需要轮询，等到文件总数==文件流写入完成数量时，开始遍历文件进行迁移。
     busboy.on('finish', function() {
       console.log(uploadFilesArr)
-      console.log('Done parsing form!')
-      let eventNum = 0
-        //检测文件是否写入完毕
-        //若文件已经写入完毕，则立即执行转存储函数transfer
-      if (fileCount === completeFileNum) {
-        transfer(uploadFilesArr, (dataList) => {
-          resolve(dataList)
-        })
-      } else {
-        //若未写入完毕，则开始轮询
-        let timer = setInterval(() => {
-          console.log("第" + eventNum + "次轮询-------")
-            //写入过慢时放弃轮询，直接放弃
-          if (eventNum > 3) {
-            clearInterval(timer)
-            reject({
-              error: "文件系统出错!"
-            })
-          }
-          //检测文件是否写入完毕
-          if (fileCount === completeFileNum) {
-            clearInterval(timer)
-              //开始文件迁移操作
-            transfer(uploadFilesArr, (dataList) => {
-              resolve(dataList)
-            })
-          }
-          eventNum++;
-        }, 1500)
+      // 遍历所有文件，计算出文件总数
+      let fileNum = 0
+      for (let index in uploadFilesArr) {
+        for (var i = 0; i < uploadFilesArr[index].length; i++) {
+          fileNum++;
+        }
       }
+      // 如果文件总数等于当前已经转存好的文件数，则返回
+      if (fileNum === completeFileNum) {
+        resolve(dataList)
+        console.log("ok")
+        return false
+      }
+      // 开启一个轮询，检测文件是否写入完毕
+      let timer = setInterval(() => {
+        console.log(fileNum)
+        console.log(completeFileNum)
+        if (fileNum === completeFileNum) {
+          clearInterval(timer)
+          resolve(dataList)
+        }
+      }, 50)
     });
     req.pipe(busboy);
   })
 
-}
-
-function transfer(uploadFilesArr, callback) {
-  let dataList = {}
-  let comCount = 0
-  let fileNum = 0
-    // 遍历出文件总数
-  for (let index in uploadFilesArr) {
-    for (var i = 0; i < uploadFilesArr[index].length; i++) {
-      fileNum++;
-    }
-  }
-  for (let index in uploadFilesArr) {
-    dataList[index] = []
-    for (var i = 0; i < uploadFilesArr[index].length; i++) {
-      // 异步非阻塞提高性能
-      let uploadArr = uploadFilesArr[index]
-      console.log(uploadArr[i])
-      fileOper(uploadArr[i], (data) => {
-        console.log(data)
-        dataList[index].push(data)
-        comCount++;
-        if (comCount === fileNum) {
-          callback(dataList)
-        }
-      })
-    }
-  }
 }
 
 async function fileOper(uploadFile, callback) {

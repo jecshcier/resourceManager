@@ -3,7 +3,6 @@ const gm = require('gm')
 const path = require('path')
 
 process.on('message', (m) => {
-	console.log(m)
 	console.log(path.normalize(m.outputPath + '/' + m.fileName))
 	let res = {
 		flag: true
