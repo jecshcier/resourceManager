@@ -113,7 +113,7 @@ const upload = function(req, res) {
         uploadFilesArr[fieldname] = []
         dataList[fieldname] = []
       }
-      
+
       //有文件片段进入
       file.on('data', function(data) {
         currentFileSize += data.length
@@ -165,7 +165,7 @@ const upload = function(req, res) {
     //当所有请求的文件流数据都接受完毕时，执行此监听事件
     busboy.on('finish', function() {
       console.log(uploadFilesArr)
-      // 遍历所有文件，计算出文件总数
+        // 遍历所有文件，计算出文件总数
       let fileNum = 0
       for (let index in uploadFilesArr) {
         for (var i = 0; i < uploadFilesArr[index].length; i++) {
@@ -237,10 +237,11 @@ async function fileOper(uploadFile, callback) {
     if (data.flag) {
       // 初始化返回对象
       let pointer = {
-          name: uploadFile.name,
-          fileUrl: CONFIG.serverUrl + CONFIG.projectName + sqlData.downloadUrl
-        }
-        // 是图片的话，增加一个预览地址
+        name: uploadFile.name,
+        fileUrl: CONFIG.serverUrl + CONFIG.projectName + sqlData.downloadUrl
+      }
+
+      // 是图片的话，增加一个预览地址
       if (sqlData.fileType === 'img') {
         pointer.filePreviewUrl = CONFIG.serverUrl + CONFIG.projectName + sqlData.previewUrl
           // flag = 1 是文件已经存在的情况
