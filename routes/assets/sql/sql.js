@@ -3,7 +3,6 @@ const moment = require('moment');
 const Sequelize = require('sequelize');
 const sequelize = new Sequelize(config['db_config'].databaseName, config['db_config'].username, config['db_config'].password, config['db_config'].options);
 const FILES = require('./models/files')(sequelize, Sequelize);
-const uuid = require('uuid');
 moment.locale('zh-cn');
 
 const callbackModel = () => {
@@ -57,11 +56,12 @@ module.exports = {
         return info
       } else {
         let result2 = await FILES.create({
-          'id': uuid.v4(),
+          'id': data.fileID,
           'file_name': data.fileName,
           'suffix_name':data.suffixName,
           'file_size':data.fileSize,
           'md5': data.md5,
+          'sys_path':data.fileSysPath,
           'download_url': data.downloadUrl,
           'preview_url':data.previewUrl,
           'create_time':moment().format("YYYY-MM-DD HH:mm:ss")
@@ -75,5 +75,32 @@ module.exports = {
       info.message = e
       return info
     }
-  }
+  },
+  getFileDownloadUrl: async (fileID) => {
+    let info = callbackModel()
+    try {
+      let result = await FILES.findOne({
+        attributes: ['id', 'md5', 'file_name', 'sys_path'],
+        where: {
+          'id': fileID
+        }
+      })
+      if (result) {
+        info.flag = true
+        info.data = JSON.parse(JSON.stringify(result))
+        info.message = '文件获取成功'
+        return info
+      } else {
+        info.flag = true
+        info.data = null
+        info.message = "暂无数据"
+        return info
+      }
+    } catch (e) {
+      info.flag = false
+      info.data = null
+      info.message = "数据库查找失败"
+      return info
+    }
+  },
 }

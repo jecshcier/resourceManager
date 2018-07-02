@@ -61,4 +61,5 @@ typings/
 
 tmpDir
 previewDir
+base64Dir
 .idea

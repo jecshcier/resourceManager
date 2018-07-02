@@ -2,6 +2,7 @@ module.exports = {
   fileConfig: {
     uploadDir: null,
     previewDir:null,
+    base64Dir:null,
     fileOptions: {
       maxFileSize: 1024 * 1024 * 1024 * 2,
       maxFileNum: 20

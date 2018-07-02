@@ -24,6 +24,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING(50),
       allowNull: true
     },
+    sys_path: {
+      type: DataTypes.STRING(500),
+      allowNull: true
+    },
     download_url: {
       type: DataTypes.STRING(500),
       allowNull: true

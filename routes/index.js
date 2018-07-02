@@ -4,10 +4,13 @@ const path = require('path')
 const CONFIG = require('../config')
 const moment = require('moment')
 const crypto = require('crypto')
-const upload = require('./upload')
+const sql = require('./assets/sql/sql')
+const upload = require('./upload').upload
+const upload_base64 = require('./upload').upload_base64
 const redis = require('./assets/lib/redis')
 const uploadDir = CONFIG.fileConfig.uploadDir || path.join(__dirname, '../tmpDir')
 const previewPath = CONFIG.fileConfig.previewDir || path.join(__dirname, '../previewDir')
+const base64Path = CONFIG.fileConfig.base64Dir || path.join(__dirname, '../base64Dir')
 const interception = ['/uploadFile', '/file']
 
 // 生成sha1Key
@@ -82,37 +85,68 @@ router.post('/uploadFile/:systemCode/:sha1Key', async function(req, res, next) {
   }
 })
 
-router.get('/file/:fileid/:filename', function(req, res, next) {
-  let fileid = req.params.fileid
-  let fileName = req.params.filename
-  fileid = new Buffer(fileid, 'base64').toString()
-  let filePath = '/'
-  for (let i = 0; i < fileid.length; i++) {
-    filePath += fileid[i]
-    console.log(i % 5)
-    if (!(i % 5) && i) {
-      filePath += '/'
-    }
+// 上传文件2
+router.post('/uploadFile_base64/:systemCode/:sha1Key', async function(req, res, next) {
+  let systemCode = req.params.systemCode
+  let sha1Key = req.params.sha1Key
+  let key
+  try {
+    key = await redis.getData(systemCode)
+  } catch (e) {
+    info.message = "文件系统出问题了哦～"
+    res.send(info)
+    return false
   }
-  console.log(uploadDir + filePath + '/' + fileName)
-  res.setHeader('content-type', 'application/octet-stream')
-  res.sendFile(uploadDir + filePath + '/' + fileName)
+  if (sha1Key === key) {
+    try {
+      let result = await upload_base64(req, res)
+      res.send(result)
+    } catch (info) {
+      res.send(info)
+      console.log(info)
+    }
+  } else {
+    res.send({
+      error: "staticKey不正确！"
+    })
+  }
 })
 
-router.get('/file_preview/:fileid/:filename', function(req, res, next) {
+router.get('/file/:fileid/:filename', async function(req, res, next) {
   let fileid = req.params.fileid
   let fileName = req.params.filename
-  fileid = new Buffer(fileid, 'base64').toString()
-  let filePath = '/'
-  for (let i = 0; i < fileid.length; i++) {
-    filePath += fileid[i]
-    console.log(i % 5)
-    if (!(i % 5) && i) {
-      filePath += '/'
-    }
+  let result = await sql.getFileDownloadUrl(fileid)
+  console.log(result)
+  if (result.flag) {
+    res.setHeader('content-type', 'application/octet-stream')
+    res.sendFile(uploadDir + '/' + result.data.sys_path)
+  } else {
+    res.send(result)
   }
-  console.log(previewPath + filePath + '/' + fileName)
-  res.sendFile(previewPath + filePath + '/' + fileName)
+})
+
+router.get('/file_preview/:fileid/:filename',async function(req, res, next) {
+  let fileid = req.params.fileid
+  let fileName = req.params.filename
+  let result = await sql.getFileDownloadUrl(fileid)
+  console.log(result)
+  if (result.flag) {
+    res.sendFile(previewPath + '/' + result.data.sys_path)
+  } else {
+    res.send(result)
+  }
+})
+
+router.get('/file_preview_base64/:fileid/:filename',async function(req, res, next) {
+  let fileid = req.params.fileid
+  let fileName = req.params.filename
+  let result = await sql.getFileDownloadUrl(fileid)
+  console.log(result)
+  if (result.flag) {
+    res.sendFile(base64Path + '/' + result.data.sys_path)
+  } else {
+    res.send(result)
+  }
 })
 
 function outputFileSize(size) {
