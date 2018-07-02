@@ -8,7 +8,7 @@ const previewPath = CONFIG.fileConfig.previewDir || path.join(__dirname, '../pre
 const sql = require('./assets/sql/sql')
 const child = require('child_process')
 const imgPresser = path.join(__dirname, './assets/lib/img_presser.js')
-const imgArr = ['jpeg', 'png']
+const imgArr = ['jpeg', 'png', 'jpg']
 
 //创建文件缓存目录
 fs.ensureDir(sourcePath, (err) => {
