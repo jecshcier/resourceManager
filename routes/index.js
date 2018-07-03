@@ -117,7 +117,7 @@ router.get('/file/:fileid/:filename', async function(req, res, next) {
   let fileName = req.params.filename
   let result = await sql.getFileDownloadUrl(fileid)
   console.log(result)
-  if (result.flag) {
+  if (result.flag && result.data) {
     res.setHeader('content-type', 'application/octet-stream')
     res.sendFile(uploadDir + '/' + result.data.sys_path)
   } else {
@@ -130,7 +130,7 @@ router.get('/file_preview/:fileid/:filename',async function(req, res, next) {
   let fileName = req.params.filename
   let result = await sql.getFileDownloadUrl(fileid)
   console.log(result)
-  if (result.flag) {
+  if (result.flag && result.data) {
     res.sendFile(previewPath + '/' + result.data.sys_path)
   } else {
     res.send(result)
@@ -142,7 +142,7 @@ router.get('/file_preview_base64/:fileid/:filename',async function(req, res, nex
   let fileName = req.params.filename
   let result = await sql.getFileDownloadUrl(fileid)
   console.log(result)
-  if (result.flag) {
+  if (result.flag && result.data) {
     res.sendFile(base64Path + '/' + result.data.sys_path)
   } else {
     res.send(result)
