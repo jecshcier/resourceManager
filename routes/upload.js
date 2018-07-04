@@ -283,6 +283,7 @@ async function fileOper(uploadFile, callback) {
 
     if (imgArr.indexOf(uploadFile.suffixName) !== -1) {
       sqlData.previewUrl = '/file_preview/' + fileID + '/' + uploadFile.name
+      sqlData.transfer = 2
       sqlData.fileType = 'img'
     }
     // 判断文件夹路径存在
@@ -301,9 +302,13 @@ async function fileOper(uploadFile, callback) {
 
       // 是图片的话，增加一个预览地址
       if (sqlData.fileType === 'img') {
-        pointer.filePreviewUrl = CONFIG.serverUrl + CONFIG.projectName + sqlData.previewUrl
-          // flag = 1 是文件已经存在的情况
-        if (data.flag !== 1) {
+        // flag = 1 是文件已经存在的情况
+        if (data.flag === 1) {
+          let fileID = data.data.id
+          sqlData.downloadUrl = '/file/' + fileID + '/' + uploadFile.name
+          sqlData.previewUrl = '/file_preview/' + fileID + '/' + uploadFile.name
+          console.log()
+        } else if (data.flag !== 1) {
           // 异步创建缩略图
           let p = child.fork(imgPresser, [], {})
           p.on('message', (m) => {
@@ -312,14 +317,18 @@ async function fileOper(uploadFile, callback) {
               return;
             }
             console.log("缩略图创建完成！")
+            sql.updateFiles(m.fileID)
           })
           p.send({
+            fileID:sqlData.fileID,
             filePath: newFilePath,
             outputPath: preMD5Path,
             fileName: uploadFile.name,
             imgWidth: CONFIG.fileConfig.pressImageW
           })
         }
+        pointer.filePreviewUrl = CONFIG.serverUrl + CONFIG.projectName + sqlData.previewUrl
+        pointer.fileUrl = CONFIG.serverUrl + CONFIG.projectName + sqlData.downloadUrl
       }
       // 一切没有问题就callback回去
       callback(pointer)

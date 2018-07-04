@@ -36,6 +36,11 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING(500),
       allowNull: true
     },
+    transfer: {
+      type: DataTypes.INTEGER(1),
+      allowNull: true,
+      defaultValue: '2'
+    },
     create_time: {
       type: DataTypes.DATE,
       allowNull: true

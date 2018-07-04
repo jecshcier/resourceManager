@@ -5,6 +5,7 @@ const path = require('path')
 process.on('message', (m) => {
 	console.log(path.normalize(m.outputPath + '/' + m.fileName))
 	let res = {
+		fileID:m.fileID,
 		flag: true
 	}
 	fs.ensureDir(m.outputPath).then(() => {

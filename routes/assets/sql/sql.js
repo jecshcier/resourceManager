@@ -15,7 +15,7 @@ const callbackModel = () => {
 
 module.exports = {
   // 获取所有文件
-  getWholeFiles: async () => {
+  getWholeFiles: async() => {
     let info = callbackModel()
     try {
       let result = FILES.findAll({
@@ -39,7 +39,7 @@ module.exports = {
       return info
     }
   },
-  addFiles: async (data) => {
+  addFiles: async(data) => {
     let info = callbackModel()
     let result
     try {
@@ -58,13 +58,14 @@ module.exports = {
         let result2 = await FILES.create({
           'id': data.fileID,
           'file_name': data.fileName,
-          'suffix_name':data.suffixName,
-          'file_size':data.fileSize,
+          'suffix_name': data.suffixName,
+          'file_size': data.fileSize,
           'md5': data.md5,
-          'sys_path':data.fileSysPath,
+          'sys_path': data.fileSysPath,
           'download_url': data.downloadUrl,
-          'preview_url':data.previewUrl,
-          'create_time':moment().format("YYYY-MM-DD HH:mm:ss")
+          'transfer': data.transfer ? data.transfer : 0,
+          'preview_url': data.previewUrl,
+          'create_time': moment().format("YYYY-MM-DD HH:mm:ss")
         })
         info.flag = true
         info.data = JSON.parse(JSON.stringify(result2))
@@ -76,7 +77,31 @@ module.exports = {
       return info
     }
   },
-  getFileDownloadUrl: async (fileID) => {
+  updateFiles: async(fileID) => {
+    console.log(fileID)
+    let info = callbackModel()
+    try {
+      let result = await FILES.update({
+        'transfer': 1
+      }, {
+        where: {
+          'id': fileID
+        }
+      })
+      console.log(result)
+      info.flag = true
+      info.data = JSON.parse(JSON.stringify(result))
+      info.message = '更新状态成功'
+      return info
+    } catch (e) {
+      console.log(e)
+      info.flag = false
+      info.data = null
+      info.message = "数据库查找失败"
+      return info
+    }
+  },
+  getFileDownloadUrl: async(fileID) => {
     let info = callbackModel()
     try {
       let result = await FILES.findOne({
