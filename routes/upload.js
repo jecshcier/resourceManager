@@ -209,6 +209,12 @@ const uploadFiles = {
   },
   upload_base64: function(req, res) {
     return new Promise(async(resolve, reject) => {
+      if (!req.body.hasOwnProperty('extName')) {
+        reject({
+          error: "无数据"
+        })
+        return
+      }
       let pos = req.body.extName
       let base64data = req.body.data
       let content = new Buffer(base64data, 'base64')
