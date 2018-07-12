@@ -1,17 +1,17 @@
 /*
  Navicat Premium Data Transfer
 
- Source Server         : localhost
+ Source Server         : 236
  Source Server Type    : MySQL
- Source Server Version : 50721
- Source Host           : localhost:3306
+ Source Server Version : 50717
+ Source Host           : 192.168.109.236:3306
  Source Schema         : rms
 
  Target Server Type    : MySQL
- Target Server Version : 50721
+ Target Server Version : 50717
  File Encoding         : 65001
 
- Date: 04/07/2018 16:58:20
+ Date: 12/07/2018 13:47:15
 */
 
 SET NAMES utf8mb4;
@@ -32,7 +32,7 @@ CREATE TABLE `files` (
   `preview_url` varchar(500) DEFAULT NULL COMMENT '预览地址',
   `transfer` tinyint(1) DEFAULT '2' COMMENT '是否被处理（图片、视频等），2失败1成功处理0不需要处理',
   `create_time` timestamp NULL DEFAULT NULL COMMENT '创建时间',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;
