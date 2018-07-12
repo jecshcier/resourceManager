@@ -323,6 +323,7 @@ async function fileOper(uploadFile, callback) {
               return;
             }
             console.log("缩略图创建完成！")
+            // 缩略图创建完成后，更新数据库标志位
             sql.updateFiles(m.fileID)
           })
           p.send({

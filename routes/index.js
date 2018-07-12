@@ -8,6 +8,7 @@ const sql = require('./assets/sql/sql')
 const upload = require('./upload').upload
 const upload_base64 = require('./upload').upload_base64
 const redis = require('./assets/lib/redis')
+const autoTransfer = require('./assets/lib/autoTransfer')
 const uploadDir = CONFIG.fileConfig.uploadDir || path.join(__dirname, '../tmpDir')
 const previewPath = CONFIG.fileConfig.previewDir || path.join(__dirname, '../previewDir')
 const base64Path = CONFIG.fileConfig.base64Dir || path.join(__dirname, '../base64Dir')
@@ -22,6 +23,10 @@ for (var i = 0; i < CONFIG.systemCode.length; i++) {
   redis.setData(CONFIG.systemCode[i], key)
 }
 
+// 每3小时检查缩略图情况
+setInterval(() => {
+  autoTransfer()
+}, 1000 * 60 * 60 * 3)
 
 router.use((req, res, next) => {
   // 中间件 - 指定的路由都将经过这里
@@ -125,7 +130,7 @@ router.get('/file/:fileid/:filename', async function(req, res, next) {
   }
 })
 
-router.get('/file_preview/:fileid/:filename',async function(req, res, next) {
+router.get('/file_preview/:fileid/:filename', async function(req, res, next) {
   let fileid = req.params.fileid
   let fileName = req.params.filename
   let result = await sql.getFileDownloadUrl(fileid)
@@ -137,7 +142,7 @@ router.get('/file_preview/:fileid/:filename',async function(req, res, next) {
   }
 })
 
-router.get('/file_preview_base64/:fileid/:filename',async function(req, res, next) {
+router.get('/file_preview_base64/:fileid/:filename', async function(req, res, next) {
   let fileid = req.params.fileid
   let fileName = req.params.filename
   let result = await sql.getFileDownloadUrl(fileid)

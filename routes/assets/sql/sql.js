@@ -128,4 +128,32 @@ module.exports = {
       return info
     }
   },
+  getTransferErrorFile: async() => {
+    let info = callbackModel()
+    try {
+      let result = await FILES.findAll({
+        attributes: ['id', 'sys_path', 'file_name'],
+        where: {
+          'transfer': 2
+        },
+        limit: 20
+      })
+      if (result) {
+        info.flag = true
+        info.data = JSON.parse(JSON.stringify(result))
+        info.message = '文件获取成功'
+        return info
+      } else {
+        info.flag = true
+        info.data = null
+        info.message = "暂无数据"
+        return info
+      }
+    } catch (e) {
+      info.flag = false
+      info.data = null
+      info.message = "数据库查找失败"
+      return info
+    }
+  }
 }
