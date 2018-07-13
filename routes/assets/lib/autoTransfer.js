@@ -23,7 +23,7 @@ const transferErrorFiles = async() => {
 				// 缩略图创建完成后，更新数据库标志位
 			sql.updateFiles(m.fileID)
 		})
-		let fn = '/' + fileArr[i].file_name
+		let fn = path.normalize('/' + fileArr[i].file_name)
 		p.send({
 			fileID: fileArr[i].id,
 			filePath: path.join(sourcePath, '/' + fileArr[i].sys_path),
