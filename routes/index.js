@@ -154,23 +154,4 @@ router.get('/file_preview_base64/:fileid/:filename', async function(req, res, ne
   }
 })
 
-function outputFileSize(size) {
-  if (size > 1024) {
-    size = size / 1024;
-    if (size > 1024) {
-      size = size / 1024;
-      if (size > 1024) {
-        size = size / 1024;
-        return size + "GB"
-      } else {
-        return size + "MB"
-      }
-    } else {
-      return size + "KB"
-    }
-  } else {
-    return size + "B"
-  }
-}
-
 module.exports = router;
