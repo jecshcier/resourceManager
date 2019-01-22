@@ -3,6 +3,9 @@ const moment = require('moment');
 const Sequelize = require('sequelize');
 const sequelize = new Sequelize(config['db_config'].databaseName, config['db_config'].username, config['db_config'].password, config['db_config'].options);
 const FILES = require('./models/files')(sequelize, Sequelize);
+FILES.sync().then((res)=>{
+  console.log('表结构同步完成........')
+})
 moment.locale('zh-cn');
 
 const callbackModel = () => {
