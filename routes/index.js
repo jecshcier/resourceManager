@@ -17,8 +17,8 @@ const interception = ['/uploadFile', '/file']
 // 生成sha1Key
 for (var i = 0; i < CONFIG.systemCode.length; i++) {
   console.log(CONFIG.systemCode[i])
-  let seed = Math.random() * 99999 + CONFIG.systemCode[i]
-  let key = crypto.createHash('sha1').update(seed).digest('hex')
+  const seed = Math.random() * 99999 + CONFIG.systemCode[i]
+  const key = crypto.createHash('sha1').update(seed).digest('hex')
   console.log(key)
   redis.setData(CONFIG.systemCode[i], key)
 }
